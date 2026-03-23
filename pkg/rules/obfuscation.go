@@ -73,6 +73,29 @@ func DetectTypoglycemiaFuzzy(data string) []string {
 	return result
 }
 
+// DetectTypoglycemiaFuzzyIgnoreCase is a case-insensitive version of DetectTypoglycemiaFuzzy
+func DetectTypoglycemiaFuzzyIgnoreCase(data string) []string {
+	words := strings.Split(data, " ")
+	patterns := getFuzzyPatterns()
+
+	var result []string
+
+	for _, word := range words {
+		if len(word) < 3 {
+			continue
+		}
+		if len(fuzzy.FindFold(word, patterns)) > 0 {
+			result = append(result, word)
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+
+	return result
+}
+
 // DetectTypoglycemia detects typoglycemia in data using a sort-based character
 // comparison against a set of known sensitive keywords. A word is considered a
 // typoglycemia variant of a target if it has the same length, the same first and
@@ -98,6 +121,11 @@ func DetectTypoglycemia(data string) []string {
 	}
 
 	return result
+}
+
+// DetectTypoglycemiaIgnoreCase is a case-insensitive version of DetectTypoglycemia
+func DetectTypoglycemiaIgnoreCase(data string) []string {
+	return DetectTypoglycemia(strings.ToLower(data))
 }
 
 // isTypoglycemia return true whether s is a typoglycemia variant of any string in
