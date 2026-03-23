@@ -128,8 +128,8 @@ func DetectTypoglycemiaIgnoreCase(data string) []string {
 	return DetectTypoglycemia(strings.ToLower(data))
 }
 
-// isTypoglycemia return true whether s is a typoglycemia variant of any string in
-// targets, otherwise false. A match requires equal length (>= 3), identical first and last
+// isTypoglycemia returns true if s is a typoglycemia variant of any string in
+// targets, otherwise it returns false. A match requires equal length (>= 3), identical first and last
 // characters, and the same multiset of characters as the target.
 //
 // Inspired by:
