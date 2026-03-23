@@ -1,6 +1,6 @@
 // Package rules implements functions to:
-// - detect ASCII Smuggling
-// - detect Typoglycemia
+// - detect ASCII Smuggling (obfuscation)
+// - detect Typoglycemia (obfuscation)
 // - etc.
 package rules
 
