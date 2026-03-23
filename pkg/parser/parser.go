@@ -1,29 +1,42 @@
-// Package parser implements the parsers to extract:
-// - URLs
-// - Shell commands
+// Package parser implements functions to:
+// - extract URLs
+// - extract Shell commands
+// - extract Base64 encoded strings
 package parser
 
 import (
 	"regexp"
 )
 
-// GetURLs extracts all the URLs from the file.
-// Can return nil if no URLs are found.
+// GetURLs extracts all HTTP and HTTPS URLs from data.
+//
+// Returns the matched URLs, or nil if none are found.
 func GetURLs(data []byte) []string {
 	urlRegex := regexp.MustCompile(`https?://[^\s<>"{}|\\^` + "`" + `\[\]]+`)
 	return urlRegex.FindAllString(string(data), -1)
 }
 
-// GetShellCommands extracts shell commands like: curl, wget, npx and pip from the file.
-// Can return nil if no shell commands are found.
+// GetShellCommands extracts potentially dangerous shell command patterns from data.
+// Detected patterns include:
+//   - curl ... | bash/sh/source  (remote script execution via curl)
+//   - wget ... -O- | bash        (remote script execution via wget)
+//   - npx <package>              (arbitrary npm package execution)
+//   - pip install ...            (arbitrary Python package installation)
+//
+// Returns the matched commands, or nil if none are found.
 func GetShellCommands(data []byte) []string {
 	shRegex := regexp.MustCompile(`curl .* \| (bash|sh|source)|wget .* -O- \| bash|npx [a-z0-9-]+|pip install .*`)
 	return shRegex.FindAllString(string(data), -1)
 }
 
-// GetBase64ValidStrings extracts all the valid base64 strings from the file.
-// It matches both full-line base64 blobs and inline base64 with a "base64," or "base64:" prefix.
-// Can return nil if no valid base64 strings are found.
+// GetBase64ValidStrings extracts base64 encoded strings from data using two strategies:
+//   - Full-line: lines whose entire content is a valid base64 blob (common for
+//     encoded instruction blocks smuggled into LLM prompts)
+//   - Inline: base64 payloads prefixed with "base64," or "base64:" (e.g. data URIs)
+//
+// Duplicates across both strategies are removed before returning.
+//
+// Returns the matched base64 strings, or nil if none are found.
 func GetBase64ValidStrings(data []byte) []string {
 	fullLineRegex := regexp.MustCompile(`(?m)^([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
 	inlineRegex := regexp.MustCompile(`base64[,:]([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?`)
