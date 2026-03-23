@@ -11,3 +11,14 @@ func TestDetectASCIISmuggling(t *testing.T) {
 	result := DetectASCIISmuggling(data)
 	assert.Equal(t, "Hello, world!", result)
 }
+
+func TestDetectASCIISmugglingNoSmuggling(t *testing.T) {
+	data := "Hello, world!"
+	result := DetectASCIISmuggling(data)
+	assert.Equal(t, "", result)
+}
+
+func TestDetectASCIISmugglingEmptyData(t *testing.T) {
+	result := DetectASCIISmuggling("")
+	assert.Equal(t, "", result)
+}
