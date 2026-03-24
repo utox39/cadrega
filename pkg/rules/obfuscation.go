@@ -1,6 +1,7 @@
 // Package rules implements functions to:
 // - detect ASCII Smuggling (obfuscation)
 // - detect Typoglycemia (obfuscation)
+// - extract Base64 encoded strings
 // - etc.
 package rules
 
