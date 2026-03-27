@@ -1,8 +1,9 @@
 // Package rules implements functions to:
 // - detect ASCII Smuggling (obfuscation)
 // - detect Typoglycemia (obfuscation)
-// - extract Base64 encoded strings
-// - extract hex encoded strings
+// - detect Base64 encoded strings
+// - detect hex encoded strings
+// - detect ASCII85 encoded strings
 // - etc.
 package rules
 
@@ -55,4 +56,34 @@ func DetectHexStrings(data string) []string {
 	}
 
 	return results
+}
+
+// DetectASCII85 extracts ASCII85-encoded strings from data by looking for the
+// standard `<~` and `~>` delimiters used by implementations such as Adobe PostScript
+// and PDF. The content between the delimiters may include whitespace, which is
+// valid and ignored during decoding.
+//
+// Returns the matched delimited ASCII85 strings, or nil if none are found.
+func DetectASCII85(data string) []string {
+	ascii85WithDelimitersRegex := regexp.MustCompile(`<~[!-uz\s]+~>`)
+	return ascii85WithDelimitersRegex.FindAllString(data, -1)
+}
+
+// DetectASCII85WithoutDelimiters extracts ASCII85-encoded strings from data
+// without relying on `<~` / `~>` delimiters. It matches runs of at least 20
+// consecutive ASCII85 characters (charset: `!` to `u` and `z`).
+//
+// Returns the matched ASCII85 strings, or nil if none are found.
+func DetectASCII85WithoutDelimiters(data string) []string {
+	// {20,} matches sequences of at least 20 consecutive ASCII85 characters.
+	// This threshold balances false positives and detection coverage:
+	// - high enough to avoid matching common text (punctuation, lowercase letters
+	//   a-u and digits all fall within the ASCII85 charset, but rarely appear
+	//   in uninterrupted runs of 20+ characters in natural language);
+	// - low enough to catch meaningful payloads (encoding just 10 bytes of data
+	//   already produces a 13-character ASCII85 string, so 20 characters
+	//   represent a conservative but realistic lower bound).
+	ascii85RawRegex := regexp.MustCompile(`[!-uz]{20,}`)
+
+	return ascii85RawRegex.FindAllString(data, -1)
 }
