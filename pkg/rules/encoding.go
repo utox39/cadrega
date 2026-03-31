@@ -12,7 +12,7 @@ import "regexp"
 // DetectBase64ValidStrings extracts base64 encoded strings from data using two strategies:
 //   - Full-line: lines whose entire content is a valid base64 blob (common for
 //     encoded instruction blocks smuggled into LLM prompts)
-//   - Inline: base64 payloads prefixed with "base64," or "base64:" (e.g. data URIs)
+//   - Inline: base64 payloads prefixed with "base64,", "base64:", "b64,", "b64:", etc. (e.g. data URIs)
 //
 // Duplicates across both strategies are removed before returning.
 //
