@@ -19,7 +19,7 @@ import "regexp"
 // Returns the matched base64 strings, or nil if none are found.
 func DetectBase64ValidStrings(data string) []string {
 	fullLineRegex := regexp.MustCompile(`(?m)^([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
-	inlineRegex := regexp.MustCompile(`b[ase]{0,3}64[,:]([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?`)
+	inlineRegex := regexp.MustCompile(`b[ase]{0,3}64[,:]\s*([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?`)
 
 	seen := make(map[string]struct{})
 	var results []string
