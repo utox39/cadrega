@@ -36,14 +36,14 @@ func DetectBase64ValidStrings(data string) []string {
 
 // DetectHexStrings extracts hex encoded strings from data using two strategies:
 //   - Full-line: lines whose entire content is a valid hex blob (even-length, at least 4 bytes)
-//   - Inline: hex payloads prefixed with "0x", "\x", "hex," or "hex:"
+//   - Inline: hex payloads prefixed with "0x", "\x", "hex,", "hex:", "hex ", "hex: "
 //
 // Duplicates across both strategies are removed before returning.
 //
 // Returns the matched hex strings, or nil if none are found.
 func DetectHexStrings(data string) []string {
 	fullLineRegex := regexp.MustCompile(`(?m)^([0-9a-fA-F]{2}){4,}$`)
-	inlineRegex := regexp.MustCompile(`(?:0x|\\x|hex[,:])[0-9a-fA-F]{2,}`)
+	inlineRegex := regexp.MustCompile(`(?:0x|\\x|hex[,:]\s*|hex\s+)[0-9a-fA-F]{2,}`)
 
 	seen := make(map[string]struct{})
 	var results []string
