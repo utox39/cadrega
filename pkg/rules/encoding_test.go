@@ -163,3 +163,83 @@ func TestDetectBase64ValidStrings(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectHexStrings(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantAny  bool
+		contains []string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			wantAny:  false,
+			contains: nil,
+		},
+		{
+			name:     "full-line hex string",
+			input:    "48656c6c6f2c20576f726c6421", // Hello, World!
+			wantAny:  true,
+			contains: []string{"48656c6c6f2c20576f726c6421"},
+		},
+		{
+			name:     "full-line no hex",
+			input:    "Hello, World!",
+			wantAny:  false,
+			contains: nil,
+		},
+		{
+			name:     "in-line hex string with prefix 0x",
+			input:    "foo 0x48656c6c6f2c20576f726c6421 foo",
+			wantAny:  true,
+			contains: []string{"0x48656c6c6f2c20576f726c6421"},
+		},
+		{
+			name:     "in-line hex string with prefix \\x",
+			input:    "foo \\x48656c6c6f2c20576f726c6421 foo",
+			wantAny:  true,
+			contains: []string{"\\x48656c6c6f2c20576f726c6421"},
+		},
+		{
+			name:     "in-line hex string with prefix hex,",
+			input:    "foo hex,48656c6c6f2c20576f726c6421 foo",
+			wantAny:  true,
+			contains: []string{"hex,48656c6c6f2c20576f726c6421"},
+		},
+		{
+			name:     "in-line hex string with prefix hex:",
+			input:    "foo hex:48656c6c6f2c20576f726c6421 foo",
+			wantAny:  true,
+			contains: []string{"hex:48656c6c6f2c20576f726c6421"},
+		},
+		{
+			name:     "in-line hex string with prefix 'hex '",
+			input:    "foo hex 48656c6c6f2c20576f726c6421 foo",
+			wantAny:  true,
+			contains: []string{"hex 48656c6c6f2c20576f726c6421"},
+		},
+		{
+			name:     "in-line hex string with prefix 'hex: '",
+			input:    "foo hex: 48656c6c6f2c20576f726c6421 foo",
+			wantAny:  true,
+			contains: []string{"hex: 48656c6c6f2c20576f726c6421"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DetectHexStrings(tt.input)
+
+			if tt.wantAny {
+				assert.NotEmpty(t, result)
+				if tt.contains != nil {
+					for _, c := range tt.contains {
+						assert.Contains(t, result, c)
+					}
+				}
+			} else {
+				assert.Empty(t, result)
+			}
+		})
+	}
+}
