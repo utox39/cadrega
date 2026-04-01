@@ -33,25 +33,25 @@ func TestDetectBase64ValidStrings(t *testing.T) {
 		},
 		{
 			name:     "in-line base64 with prefix base64",
-			input:    "base64:SGVsbG8sIFdvcmxkIQ==", // Hello, World!
+			input:    "foo base64:SGVsbG8sIFdvcmxkIQ== foo", // Hello, World!
 			wantAny:  true,
 			contains: []string{"base64:SGVsbG8sIFdvcmxkIQ=="},
 		},
 		{
 			name:     "in-line base64 with space after the prefix base64",
-			input:    "base64: SGVsbG8sIFdvcmxkIQ==", // Hello, World!
+			input:    "foo base64: SGVsbG8sIFdvcmxkIQ== foo", // Hello, World!
 			wantAny:  true,
 			contains: []string{"base64: SGVsbG8sIFdvcmxkIQ=="},
 		},
 		{
 			name:     "in-line base64 with prefix b64",
-			input:    "b64:SGVsbG8sIFdvcmxkIQ==", // Hello, World!
+			input:    "foo b64:SGVsbG8sIFdvcmxkIQ== foo", // Hello, World!
 			wantAny:  true,
 			contains: []string{"b64:SGVsbG8sIFdvcmxkIQ=="},
 		},
 		{
 			name:     "in-line base64 with space after the prefix b64",
-			input:    "b64: SGVsbG8sIFdvcmxkIQ==", // Hello, World!
+			input:    "foo b64: SGVsbG8sIFdvcmxkIQ== foo", // Hello, World!
 			wantAny:  true,
 			contains: []string{"b64: SGVsbG8sIFdvcmxkIQ=="},
 		},
