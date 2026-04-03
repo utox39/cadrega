@@ -243,3 +243,53 @@ func TestDetectHexStrings(t *testing.T) {
 		})
 	}
 }
+
+func TestDetectASCII85(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantAny  bool
+		contains []string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			wantAny:  false,
+			contains: nil,
+		},
+		{
+			name:     "full-line no ASCII85",
+			input:    "Hello, World!",
+			wantAny:  false,
+			contains: nil,
+		},
+		{
+			name:     "full-line ASCII85 string",
+			input:    "<~87cURD_*#4DfTZ)+T~>", // Hello, World!
+			wantAny:  true,
+			contains: []string{"<~87cURD_*#4DfTZ)+T~>"},
+		},
+		{
+			name:     "in-line ASCII85 string",
+			input:    "foo <~87cURD_*#4DfTZ)+T~> foo",
+			wantAny:  true,
+			contains: []string{"<~87cURD_*#4DfTZ)+T~>"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DetectASCII85(tt.input)
+
+			if tt.wantAny {
+				assert.NotEmpty(t, result)
+				if tt.contains != nil {
+					for _, c := range tt.contains {
+						assert.Contains(t, result, c)
+					}
+				}
+			} else {
+				assert.Empty(t, result)
+			}
+		})
+	}
+}
