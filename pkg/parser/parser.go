@@ -10,9 +10,9 @@ import (
 // GetURLs extracts all HTTP and HTTPS URLs from data.
 //
 // Returns the matched URLs, or nil if none are found.
-func GetURLs(data []byte) []string {
+func GetURLs(data string) []string {
 	urlRegex := regexp.MustCompile(`https?://[^\s<>"{}|\\^` + "`" + `\[\]]+`)
-	return urlRegex.FindAllString(string(data), -1)
+	return urlRegex.FindAllString(data, -1)
 }
 
 // GetShellCommands extracts potentially dangerous shell command patterns from data.
@@ -23,7 +23,7 @@ func GetURLs(data []byte) []string {
 //   - pip install ...            (arbitrary Python package installation)
 //
 // Returns the matched commands, or nil if none are found.
-func GetShellCommands(data []byte) []string {
+func GetShellCommands(data string) []string {
 	shRegex := regexp.MustCompile(`curl .* \| (bash|sh|source)|wget .* -O- \| bash|npx [a-z0-9-]+|pip install .*`)
-	return shRegex.FindAllString(string(data), -1)
+	return shRegex.FindAllString(data, -1)
 }
