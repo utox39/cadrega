@@ -65,11 +65,23 @@ func getDANKeywords() []string {
 	}
 }
 
+// DetectDAN scans data for DAN (Do Anything Now) prompt injection patterns,
+// a class of jailbreak attacks that attempt to bypass an LLM's safety guidelines
+// by assigning it an alternative identity or overriding its instructions.
+//
+// Returns the matched keywords and nil error, or nil and nil if none are found.
 func DetectDAN(data string) ([]string, error) {
-	// NOTE: at the moment we detect basic DAN only
+	// NOTE: At the moment we detect basic DAN only
 	return detectBasicDAN(data), nil
 }
 
+// detectBasicDAN performs case-insensitive substring matching of data against
+// a set of known static DAN keywords (see getDANKeywords). It covers patterns
+// such as alternative identity assignment ("act as", "DAN"), mode-enabling
+// phrases ("developer mode", "god mode"), and explicit instruction overrides
+// ("ignore previous instructions").
+//
+// Returns the matched keywords, or nil if data is empty or no matches are found.
 func detectBasicDAN(data string) []string {
 	if len(data) == 0 {
 		return nil
