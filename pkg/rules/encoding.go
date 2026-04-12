@@ -145,23 +145,23 @@ func (h HexEncoding) Detect() ([]findings.Finding, error) {
 	return f, nil
 }
 
-// DetectASCII85 extracts ASCII85-encoded strings from data by looking for the
+// DetectASCII85Strings extracts ASCII85-encoded strings from data by looking for the
 // standard `<~` and `~>` delimiters used by implementations such as Adobe PostScript
 // and PDF. The content between the delimiters may include whitespace, which is
 // valid and ignored during decoding.
 //
 // Returns the matched delimited ASCII85 strings, or nil if none are found.
-func DetectASCII85(data string) []string {
+func DetectASCII85Strings(data string) []string {
 	ascii85WithDelimitersRegex := regexp.MustCompile(`<~[!-uz\s]+~>`)
 	return ascii85WithDelimitersRegex.FindAllString(data, -1)
 }
 
-// DetectASCII85WithoutDelimiters extracts ASCII85-encoded strings from data
+// DetectASCII85StringsWithoutDelimiters extracts ASCII85-encoded strings from data
 // without relying on `<~` / `~>` delimiters. It matches runs of at least 20
 // consecutive ASCII85 characters (charset: `!` to `u` and `z`).
 //
 // Returns the matched ASCII85 strings, or nil if none are found.
-func DetectASCII85WithoutDelimiters(data string) []string {
+func DetectASCII85StringsWithoutDelimiters(data string) []string {
 	// {20,} matches sequences of at least 20 consecutive ASCII85 characters.
 	// This threshold balances false positives and detection coverage:
 	// - high enough to avoid matching common text (punctuation, lowercase letters
@@ -192,9 +192,9 @@ func (a85 ASCII85Encoding) Detect() ([]findings.Finding, error) {
 	var result []string
 
 	if a85.WithoutDelimiters {
-		result = DetectASCII85WithoutDelimiters(a85.Data)
+		result = DetectASCII85StringsWithoutDelimiters(a85.Data)
 	} else {
-		result = DetectASCII85(a85.Data)
+		result = DetectASCII85Strings(a85.Data)
 	}
 
 	if result == nil {

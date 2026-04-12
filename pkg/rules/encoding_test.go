@@ -278,7 +278,7 @@ func TestDetectASCII85(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := DetectASCII85(tt.input)
+			result := DetectASCII85Strings(tt.input)
 
 			if tt.wantAny {
 				assert.NotEmpty(t, result)
