@@ -1,4 +1,4 @@
-# Cadrega
+# Cadrega 🪑🍎
 
 ## Resources
 
