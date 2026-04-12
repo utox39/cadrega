@@ -1,6 +1,11 @@
 package rules
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/utox39/cadrega/pkg/findings"
+)
 
 // Basic DAN; detectable through static analysis
 // TODO: maybe we should read from an external file (+ easier to update, - more overhead)
@@ -95,4 +100,41 @@ func detectBasicDAN(data string) []string {
 		}
 	}
 	return result
+}
+
+type DAN struct {
+	Data string
+}
+
+func (d DAN) ID() string {
+	return "INJ001"
+}
+
+func (d DAN) Name() string {
+	return "DAN Prompt Injection"
+}
+
+func (d DAN) Detect() ([]findings.Finding, error) {
+	result, err := DetectDAN(d.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	if result == nil {
+		return nil, nil
+	}
+
+	f := make([]findings.Finding, 0)
+
+	for _, r := range result {
+		f = append(f, findings.Finding{
+			ID:       d.ID(),
+			Name:     d.Name(),
+			Message:  "DAN (Do Anything Now) prompt injection. It can be used to bypass an LLM's safety guidelines",
+			Evidence: fmt.Sprintf("prompt: '%s'", r),
+			Severity: findings.High,
+		})
+	}
+
+	return f, nil
 }
