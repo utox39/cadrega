@@ -148,7 +148,7 @@ func TestDetectBase64ValidStrings(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := DetectBase64ValidStrings(tt.input)
+			result := DetectBase64Strings(tt.input)
 
 			if tt.wantAny {
 				assert.NotEmpty(t, result)

@@ -18,7 +18,7 @@ import (
 	"github.com/utox39/cadrega/pkg/findings"
 )
 
-// DetectBase64ValidStrings extracts base64 encoded strings from data using two strategies:
+// DetectBase64Strings extracts base64 encoded strings from data using two strategies:
 //   - Full-line: lines whose entire content is a valid base64 blob (common for
 //     encoded instruction blocks smuggled into LLM prompts)
 //   - Inline: base64 payloads prefixed with "base64,", "base64:", "b64,", "b64:", etc. (e.g. data URIs)
@@ -26,7 +26,7 @@ import (
 // Duplicates across both strategies are removed before returning.
 //
 // Returns the matched base64 strings, or nil if none are found.
-func DetectBase64ValidStrings(data string) []string {
+func DetectBase64Strings(data string) []string {
 	fullLineRegex := regexp.MustCompile(`(?m)^([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
 	inlineRegex := regexp.MustCompile(`b[ase]{0,3}64[,:]\s*([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?`)
 
@@ -56,7 +56,7 @@ func (b64 Base64Encoding) Name() string {
 }
 
 func (b64 Base64Encoding) Detect() ([]findings.Finding, error) {
-	result := DetectBase64ValidStrings(b64.Data)
+	result := DetectBase64Strings(b64.Data)
 
 	if result == nil {
 		return nil, nil
