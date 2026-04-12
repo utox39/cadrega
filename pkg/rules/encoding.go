@@ -7,7 +7,16 @@
 // - etc.
 package rules
 
-import "regexp"
+import (
+	"encoding/ascii85"
+	"encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"regexp"
+	"strings"
+
+	"github.com/utox39/cadrega/pkg/findings"
+)
 
 // DetectBase64ValidStrings extracts base64 encoded strings from data using two strategies:
 //   - Full-line: lines whose entire content is a valid base64 blob (common for
@@ -34,6 +43,45 @@ func DetectBase64ValidStrings(data string) []string {
 	return results
 }
 
+type Base64Encoding struct {
+	Data string
+}
+
+func (b64 Base64Encoding) ID() string {
+	return "ENC001"
+}
+
+func (b64 Base64Encoding) Name() string {
+	return "Base64 Encoded Strings"
+}
+
+func (b64 Base64Encoding) Detect() ([]findings.Finding, error) {
+	result := DetectBase64ValidStrings(b64.Data)
+
+	if result == nil {
+		return nil, nil
+	}
+
+	f := make([]findings.Finding, 0)
+
+	for _, r := range result {
+		dec, err := base64.StdEncoding.DecodeString(r)
+		if err != nil {
+			return nil, err
+		}
+
+		f = append(f, findings.Finding{
+			ID:       b64.ID(),
+			Name:     b64.Name(),
+			Message:  "Base64 string detected. It can be used to perform prompt injection",
+			Evidence: fmt.Sprintf("base64: '%s' - decoded: '%s'", r, string(dec)),
+			Severity: findings.High,
+		})
+	}
+
+	return f, nil
+}
+
 // DetectHexStrings extracts hex encoded strings from data using two strategies:
 //   - Full-line: lines whose entire content is a valid hex blob (even-length, at least 4 bytes)
 //   - Inline: hex payloads prefixed with "0x", "\x", "hex,", "hex:", "hex ", "hex: "
@@ -56,6 +104,45 @@ func DetectHexStrings(data string) []string {
 	}
 
 	return results
+}
+
+type HexEncoding struct {
+	Data string
+}
+
+func (h HexEncoding) ID() string {
+	return "ENC002"
+}
+
+func (h HexEncoding) Name() string {
+	return "Hex Encoded Strings"
+}
+
+func (h HexEncoding) Detect() ([]findings.Finding, error) {
+	result := DetectHexStrings(h.Data)
+
+	if result == nil {
+		return nil, nil
+	}
+
+	f := make([]findings.Finding, 0)
+
+	for _, r := range result {
+		dec, err := hex.DecodeString(r)
+		if err != nil {
+			return nil, err
+		}
+
+		f = append(f, findings.Finding{
+			ID:       h.ID(),
+			Name:     h.Name(),
+			Message:  "Hex string detected. It can be used to perform prompt injection",
+			Evidence: fmt.Sprintf("hex: '%s' - decoded: '%s'", r, string(dec)),
+			Severity: findings.High,
+		})
+	}
+
+	return f, nil
 }
 
 // DetectASCII85 extracts ASCII85-encoded strings from data by looking for the
@@ -86,4 +173,57 @@ func DetectASCII85WithoutDelimiters(data string) []string {
 	ascii85RawRegex := regexp.MustCompile(`[!-uz]{20,}`)
 
 	return ascii85RawRegex.FindAllString(data, -1)
+}
+
+type ASCII85Encoding struct {
+	Data              string
+	WithoutDelimiters bool
+}
+
+func (a85 ASCII85Encoding) ID() string {
+	return "ENC003"
+}
+
+func (a85 ASCII85Encoding) Name() string {
+	return "ASCII85 Encoded Strings"
+}
+
+func (a85 ASCII85Encoding) Detect() ([]findings.Finding, error) {
+	var result []string
+
+	if a85.WithoutDelimiters {
+		result = DetectASCII85WithoutDelimiters(a85.Data)
+	} else {
+		result = DetectASCII85(a85.Data)
+	}
+
+	if result == nil {
+		return nil, nil
+	}
+
+	f := make([]findings.Finding, 0)
+
+	for _, r := range result {
+		if !a85.WithoutDelimiters {
+			r = strings.ReplaceAll(r, "<~", "")
+			r = strings.ReplaceAll(r, "~>", "")
+		}
+
+		dst := make([]byte, len(r))
+		ndst, _, err := ascii85.Decode(dst, []byte(r), true)
+		if err != nil {
+			return nil, err
+		}
+		dec := dst[:ndst]
+
+		f = append(f, findings.Finding{
+			ID:       a85.ID(),
+			Name:     a85.Name(),
+			Message:  "ASCII85 string detected. It can be used to perform prompt injection",
+			Evidence: fmt.Sprintf("ASCII85: '%s' - decoded: '%s'", r, string(dec)),
+			Severity: findings.High,
+		})
+	}
+
+	return f, nil
 }
