@@ -1,5 +1,15 @@
 # Cadrega 🪑🍎
 
+## Usage of LLMs
+
+For transparency: LLMs are used (with strict manual review and intervention when necessary) to assist me with:
+
+- writing boilerplate code
+- writing documentation
+- creating simple, tedious scripts like [scripts/extract_npm_packages.py](https://github.com/user/cadrega/blob/main/scripts/extract_npm_packages.py)
+- writing some regular expressions
+- fixing bugs (especially those related to functions/methods and concepts I’m not an expert in)
+
 ## Resources
 
 - [Technical Report: Exploring the Emerging Threats of the Agent Skill Ecosystem](https://github.com/snyk/agent-scan/blob/main/.github/reports/skills-report.pdf)
