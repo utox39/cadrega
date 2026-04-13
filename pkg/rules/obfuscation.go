@@ -6,10 +6,12 @@
 package rules
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
+	"github.com/utox39/cadrega/pkg/findings"
 )
 
 // TODO: add more fuzzy patterns
@@ -38,6 +40,39 @@ func DetectASCIISmuggling(data string) string {
 	}
 
 	return result.String()
+}
+
+type ASCIISmuggling struct {
+	Data string
+}
+
+func (as ASCIISmuggling) ID() string {
+	return "OBF001"
+}
+
+func (as ASCIISmuggling) Name() string {
+	return "ASCII Smuggling"
+}
+
+func (as ASCIISmuggling) Detect() ([]findings.Finding, error) {
+	result := DetectASCIISmuggling(as.Data)
+
+	if len(result) == 0 {
+		return nil, nil
+	}
+
+	// To respect the return type defined in the `Rule` interface
+	f := []findings.Finding{
+		{
+			ID:       as.ID(),
+			Name:     as.Name(),
+			Message:  "ASCII Smuggling. It uses invisible characters that can be used to perform prompt injection",
+			Evidence: fmt.Sprintf("visible: '%s'", result),
+			Severity: findings.High,
+		},
+	}
+
+	return f, nil
 }
 
 // DetectTypoglycemiaFuzzy detects typoglycemia in data using fuzzy string
@@ -154,4 +189,67 @@ func isTypoglycemia(s string, targets []string) bool {
 	}
 
 	return false
+}
+
+type Typoglycemia struct {
+	Data       string
+	Fuzzy      bool
+	IgnoreCase bool
+	Join       bool // Join the individual strings into a single string, separated by spaces
+}
+
+func (t Typoglycemia) ID() string {
+	return "OBF002"
+}
+
+func (t Typoglycemia) Name() string {
+	return "Typoglycemia"
+}
+
+func (t Typoglycemia) Detect() ([]findings.Finding, error) {
+	var result []string
+
+	if t.Fuzzy {
+		if t.IgnoreCase {
+			result = DetectTypoglycemiaFuzzyIgnoreCase(t.Data)
+		} else {
+			result = DetectTypoglycemiaFuzzy(t.Data)
+		}
+	} else if t.IgnoreCase {
+		result = DetectTypoglycemiaIgnoreCase(t.Data)
+	} else {
+		result = DetectTypoglycemia(t.Data)
+	}
+
+	if result == nil {
+		return nil, nil
+	}
+
+	if t.Join {
+		resultJoined := strings.Join(result, " ")
+		// To respect the return type defined in the `Rule` interface
+		return []findings.Finding{
+			{
+				ID:       t.ID(),
+				Name:     t.Name(),
+				Message:  "Typoglycemia detected. It can be used to perform prompt injection",
+				Evidence: fmt.Sprintf("typoglycemia: '%s' ", resultJoined),
+				Severity: findings.High,
+			},
+		}, nil
+	}
+
+	f := make([]findings.Finding, 0)
+
+	for _, r := range result {
+		f = append(f, findings.Finding{
+			ID:       t.ID(),
+			Name:     t.Name(),
+			Message:  "Typoglycemia detected. It can be used to perform prompt injection",
+			Evidence: fmt.Sprintf("typoglycemia: '%s' ", r),
+			Severity: findings.High,
+		})
+	}
+
+	return f, nil
 }
