@@ -2,13 +2,15 @@
 
 ## Usage of LLMs
 
-For transparency: LLMs are used (with strict manual review and intervention when necessary) to assist me with:
+For transparency: LLMs are used (with strict manual review and intervention when
+necessary) to assist me with:
 
 - writing boilerplate code
 - writing documentation
-- creating simple, tedious scripts like [scripts/extract_npm_packages.py](https://github.com/user/cadrega/blob/main/scripts/extract_npm_packages.py)
+- creating simple, tedious scripts like [scripts/extract_npm_packages.py](https://github.com/utox39/cadrega/blob/main/scripts/extract_npm_packages.py)
 - writing some regular expressions
-- fixing bugs (especially those related to functions/methods and concepts I’m not an expert in)
+- fixing bugs (especially those related to functions/methods and concepts I’m
+not an expert in)
 
 ## Resources
 
