@@ -18,6 +18,25 @@ import (
 	"github.com/utox39/cadrega/pkg/findings"
 )
 
+var (
+	b64FullLineRegex = regexp.MustCompile(`(?m)^([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
+	b64InlineRegex   = regexp.MustCompile(`b[ase]{0,3}64[,:]\s*([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?`)
+
+	hexFullLineRegex = regexp.MustCompile(`(?m)^([0-9a-fA-F]{2}){4,}$`)
+	hexInlineRegex   = regexp.MustCompile(`(?:0x|\\x|hex[,:]\s*|hex\s+)[0-9a-fA-F]{2,}`)
+
+	ascii85WithDelimitersRegex = regexp.MustCompile(`<~[!-uz\s]+~>`)
+	// {20,} matches sequences of at least 20 consecutive ASCII85 characters.
+	// This threshold balances false positives and detection coverage:
+	// - high enough to avoid matching common text (punctuation, lowercase letters
+	//   a-u and digits all fall within the ASCII85 charset, but rarely appear
+	//   in uninterrupted runs of 20+ characters in natural language);
+	// - low enough to catch meaningful payloads (encoding just 10 bytes of data
+	//   already produces a 13-character ASCII85 string, so 20 characters
+	//   represent a conservative but realistic lower bound).
+	ascii85RawRegex = regexp.MustCompile(`[!-uz]{20,}`)
+)
+
 // DetectBase64Strings extracts base64 encoded strings from data using two strategies:
 //   - Full-line: lines whose entire content is a valid base64 blob (common for
 //     encoded instruction blocks smuggled into LLM prompts)
@@ -27,13 +46,10 @@ import (
 //
 // Returns the matched base64 strings, or nil if none are found.
 func DetectBase64Strings(data string) []string {
-	fullLineRegex := regexp.MustCompile(`(?m)^([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$`)
-	inlineRegex := regexp.MustCompile(`b[ase]{0,3}64[,:]\s*([A-Za-z0-9+/]{4})+([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?`)
-
 	seen := make(map[string]struct{})
 	var results []string
 
-	for _, match := range append(fullLineRegex.FindAllString(data, -1), inlineRegex.FindAllString(data, -1)...) {
+	for _, match := range append(b64FullLineRegex.FindAllString(data, -1), b64InlineRegex.FindAllString(data, -1)...) {
 		if _, ok := seen[match]; !ok {
 			seen[match] = struct{}{}
 			results = append(results, match)
@@ -90,13 +106,10 @@ func (b64 Base64Encoding) Detect() ([]findings.Finding, error) {
 //
 // Returns the matched hex strings, or nil if none are found.
 func DetectHexStrings(data string) []string {
-	fullLineRegex := regexp.MustCompile(`(?m)^([0-9a-fA-F]{2}){4,}$`)
-	inlineRegex := regexp.MustCompile(`(?:0x|\\x|hex[,:]\s*|hex\s+)[0-9a-fA-F]{2,}`)
-
 	seen := make(map[string]struct{})
 	var results []string
 
-	for _, match := range append(fullLineRegex.FindAllString(data, -1), inlineRegex.FindAllString(data, -1)...) {
+	for _, match := range append(hexFullLineRegex.FindAllString(data, -1), hexInlineRegex.FindAllString(data, -1)...) {
 		if _, ok := seen[match]; !ok {
 			seen[match] = struct{}{}
 			results = append(results, match)
@@ -152,7 +165,6 @@ func (h HexEncoding) Detect() ([]findings.Finding, error) {
 //
 // Returns the matched delimited ASCII85 strings, or nil if none are found.
 func DetectASCII85Strings(data string) []string {
-	ascii85WithDelimitersRegex := regexp.MustCompile(`<~[!-uz\s]+~>`)
 	return ascii85WithDelimitersRegex.FindAllString(data, -1)
 }
 
@@ -162,16 +174,6 @@ func DetectASCII85Strings(data string) []string {
 //
 // Returns the matched ASCII85 strings, or nil if none are found.
 func DetectASCII85StringsWithoutDelimiters(data string) []string {
-	// {20,} matches sequences of at least 20 consecutive ASCII85 characters.
-	// This threshold balances false positives and detection coverage:
-	// - high enough to avoid matching common text (punctuation, lowercase letters
-	//   a-u and digits all fall within the ASCII85 charset, but rarely appear
-	//   in uninterrupted runs of 20+ characters in natural language);
-	// - low enough to catch meaningful payloads (encoding just 10 bytes of data
-	//   already produces a 13-character ASCII85 string, so 20 characters
-	//   represent a conservative but realistic lower bound).
-	ascii85RawRegex := regexp.MustCompile(`[!-uz]{20,}`)
-
 	return ascii85RawRegex.FindAllString(data, -1)
 }
 

@@ -7,11 +7,15 @@ import (
 	"regexp"
 )
 
+var (
+	urlRegex = regexp.MustCompile(`https?://[^\s<>"{}|\\^` + "`" + `\[\]]+`)
+	shRegex  = regexp.MustCompile(`curl .* \| (bash|sh|source)|wget .* -O- \| bash|npx [a-z0-9-]+|pip install .*`)
+)
+
 // GetURLs extracts all HTTP and HTTPS URLs from data.
 //
 // Returns the matched URLs, or nil if none are found.
 func GetURLs(data string) []string {
-	urlRegex := regexp.MustCompile(`https?://[^\s<>"{}|\\^` + "`" + `\[\]]+`)
 	return urlRegex.FindAllString(data, -1)
 }
 
@@ -24,6 +28,5 @@ func GetURLs(data string) []string {
 //
 // Returns the matched commands, or nil if none are found.
 func GetShellCommands(data string) []string {
-	shRegex := regexp.MustCompile(`curl .* \| (bash|sh|source)|wget .* -O- \| bash|npx [a-z0-9-]+|pip install .*`)
 	return shRegex.FindAllString(data, -1)
 }
