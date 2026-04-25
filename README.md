@@ -11,6 +11,7 @@ necessary) to assist me with:
 - writing some regular expressions
 - fixing bugs (especially those related to functions/methods and concepts I’m
 not an expert in)
+- brainstorming
 
 ## Resources
 
@@ -20,5 +21,6 @@ not an expert in)
 - [Researchers Find 341 Malicious ClawHub Skills Stealing Data from OpenClaw Users](https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html)
 - [“Do Anything Now”: Characterizing and Evaluating In-The-Wild Jailbreak Prompts on Large Language Models](https://arxiv.org/abs/2308.03825)
 - [LLM Prompt Injection Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/LLM_Prompt_Injection_Prevention_Cheat_Sheet.html)
+[AST01 — Malicious Skills](https://owasp.org/www-project-agentic-skills-top-10/ast01)
 - [ecosyste-ms/typosquatting-dataset](https://github.com/ecosyste-ms/typosquatting-dataset)
 - [Go code for Shannon entropy](https://github.com/chrisjchandler/entropy)
