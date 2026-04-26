@@ -2,7 +2,9 @@ package rules
 
 import (
 	"fmt"
-	"strings"
+	"regexp"
+	"sync"
+	"unicode"
 
 	"github.com/utox39/cadrega/pkg/findings"
 )
@@ -70,6 +72,31 @@ func getDANKeywords() []string {
 	}
 }
 
+var (
+	initRegexOnce sync.Once
+	danPatterns   []*regexp.Regexp
+	danKeywords   []string
+)
+
+func initDANDetection() {
+	initRegexOnce.Do(func() {
+		danKeywords = getDANKeywords()
+		danPatterns = make([]*regexp.Regexp, len(danKeywords))
+		for i, kw := range danKeywords {
+			runes := []rune(kw)
+			prefix, suffix := "", ""
+			if unicode.IsLetter(runes[0]) || unicode.IsDigit(runes[0]) {
+				prefix = `\b`
+			}
+			last := runes[len(runes)-1]
+			if unicode.IsLetter(last) || unicode.IsDigit(last) {
+				suffix = `\b`
+			}
+			danPatterns[i] = regexp.MustCompile(`(?i)` + prefix + regexp.QuoteMeta(kw) + suffix)
+		}
+	})
+}
+
 // DetectDAN scans data for DAN (Do Anything Now) prompt injection patterns,
 // a class of jailbreak attacks that attempt to bypass an LLM's safety guidelines
 // by assigning it an alternative identity or overriding its instructions.
@@ -92,11 +119,12 @@ func detectBasicDAN(data string) []string {
 		return nil
 	}
 
-	lower := strings.ToLower(data)
+	initDANDetection()
+
 	var result []string
-	for _, kw := range getDANKeywords() {
-		if strings.Contains(lower, strings.ToLower(kw)) {
-			result = append(result, kw)
+	for i, p := range danPatterns {
+		if p.MatchString(data) {
+			result = append(result, danKeywords[i])
 		}
 	}
 	return result
