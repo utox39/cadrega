@@ -9,14 +9,13 @@ import (
 	"github.com/utox39/cadrega/pkg/findings"
 )
 
-// Basic DAN; detectable through static analysis
-// TODO: maybe we should read from an external file (+ easier to update, - more overhead)
-func getDANKeywords() []string {
-	// TODO: change to map[string]int - [keyword]score (?)
+// Basic DAN: detectable through static analysis
+func getPromptInjKeywords() []string {
 	return []string{
 		// Alternative identity
 		"do anything now",
 		"DAN",
+		// https://www.reddit.com/r/ChatGPTPromptGenius/comments/15ptsea/strive_to_avoid_norms_stan_prompt/
 		"STAN", // "Strive To Avoid Norms"
 		"DUDE",
 		"AIM", // "Always Intelligent and Machiavellian"
@@ -129,58 +128,57 @@ func initPromptInjDetection() {
 			if unicode.IsLetter(last) || unicode.IsDigit(last) {
 				suffix = `\b`
 			}
-			danPatterns[i] = regexp.MustCompile(`(?i)` + prefix + regexp.QuoteMeta(kw) + suffix)
+			promptInjPatterns[i] = regexp.MustCompile(`(?i)` + prefix + regexp.QuoteMeta(kw) + suffix)
 		}
 	})
 }
 
-// DetectDAN scans data for DAN (Do Anything Now) prompt injection patterns,
+// DetectPromptInjection scans data for DAN (Do Anything Now) prompt injection patterns,
 // a class of jailbreak attacks that attempt to bypass an LLM's safety guidelines
 // by assigning it an alternative identity or overriding its instructions.
 //
 // Returns the matched keywords and nil error, or nil and nil if none are found.
-func DetectDAN(data string) ([]string, error) {
+func DetectPromptInjection(data string) ([]string, error) {
 	// NOTE: At the moment we detect basic DAN only
-	return detectBasicDAN(data), nil
+	return detectBasicPromptInjection(data), nil
 }
 
-// detectBasicDAN performs case-insensitive substring matching of data against
-// a set of known static DAN keywords (see getDANKeywords). It covers patterns
-// such as alternative identity assignment ("act as", "DAN"), mode-enabling
-// phrases ("developer mode", "god mode"), and explicit instruction overrides
-// ("ignore previous instructions").
+// detectBasicPromptInjection performs case-insensitive word-boundary regex matching against
+// a set of known static injection keywords (see getDANKeywords). It covers
+// alternative identity assignment, mode-enabling phrases, instruction overrides,
+// system-prompt extraction, special token injection, and harmful output framing.
 //
 // Returns the matched keywords, or nil if data is empty or no matches are found.
-func detectBasicDAN(data string) []string {
+func detectBasicPromptInjection(data string) []string {
 	if len(data) == 0 {
 		return nil
 	}
 
-	initDANDetection()
+	initPromptInjDetection()
 
 	var result []string
-	for i, p := range danPatterns {
+	for i, p := range promptInjPatterns {
 		if p.MatchString(data) {
-			result = append(result, danKeywords[i])
+			result = append(result, promptInjKeywords[i])
 		}
 	}
 	return result
 }
 
-type DAN struct {
+type PromptInjection struct {
 	Data string
 }
 
-func (d DAN) ID() string {
+func (d PromptInjection) ID() string {
 	return "INJ001"
 }
 
-func (d DAN) Name() string {
-	return "DAN Prompt Injection"
+func (d PromptInjection) Name() string {
+	return "Prompt Injection"
 }
 
-func (d DAN) Detect() ([]findings.Finding, error) {
-	result, err := DetectDAN(d.Data)
+func (d PromptInjection) Detect() ([]findings.Finding, error) {
+	result, err := DetectPromptInjection(d.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +193,7 @@ func (d DAN) Detect() ([]findings.Finding, error) {
 		f = append(f, findings.Finding{
 			ID:       d.ID(),
 			Name:     d.Name(),
-			Message:  "DAN (Do Anything Now) prompt injection. It can be used to bypass an LLM's safety guidelines",
+			Message:  "Prompt injection. It can be used to bypass an LLM's safety guidelines",
 			Evidence: fmt.Sprintf("prompt: '%s'", r),
 			Severity: findings.High,
 		})
