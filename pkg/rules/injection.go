@@ -22,6 +22,8 @@ func getPromptInjKeywords() []string {
 		"JAILBROKEN",
 		"BetterDAN",
 		"EvilBot",
+		// https://arxiv.org/pdf/2311.16119v3
+		"SDA", // "Superior Do Anything"
 
 		// Enable dummy mode
 		"developer mode",
