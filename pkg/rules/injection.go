@@ -140,9 +140,9 @@ func initPromptInjDetection() {
 // a class of jailbreak attacks that attempt to bypass an LLM's safety guidelines
 // by assigning it an alternative identity or overriding its instructions.
 //
-// Returns the matched keywords and nil error, or nil and nil if none are found.
+// Returns the matched keywords or nil if none are found.
 func DetectPromptInjection(data string) ([]string, error) {
-	// NOTE: At the moment we detect basic DAN only
+	// NOTE: At the moment we detect basic prompt injection only
 	return detectBasicPromptInjection(data), nil
 }
 
