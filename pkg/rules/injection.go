@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"sync"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/utox39/cadrega/pkg/findings"
 )
@@ -111,23 +112,23 @@ func getPromptInjKeywords() []string {
 }
 
 var (
-	initRegexOnce     sync.Once
+	initInjRegexOnce  sync.Once
 	promptInjPatterns []*regexp.Regexp
 	promptInjKeywords []string
 )
 
 func initPromptInjDetection() {
-	initRegexOnce.Do(func() {
+	initInjRegexOnce.Do(func() {
 		promptInjKeywords = getPromptInjKeywords()
 		promptInjPatterns = make([]*regexp.Regexp, len(promptInjKeywords))
 		for i, kw := range promptInjKeywords {
-			runes := []rune(kw)
 			prefix, suffix := "", ""
-			if unicode.IsLetter(runes[0]) || unicode.IsDigit(runes[0]) {
+			firstRune, _ := utf8.DecodeRuneInString(kw)
+			if unicode.IsLetter(firstRune) || unicode.IsDigit(firstRune) {
 				prefix = `\b`
 			}
-			last := runes[len(runes)-1]
-			if unicode.IsLetter(last) || unicode.IsDigit(last) {
+			lastRune, _ := utf8.DecodeLastRuneInString(kw)
+			if unicode.IsLetter(lastRune) || unicode.IsDigit(lastRune) {
 				suffix = `\b`
 			}
 			promptInjPatterns[i] = regexp.MustCompile(`(?i)` + prefix + regexp.QuoteMeta(kw) + suffix)
