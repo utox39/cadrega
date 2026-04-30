@@ -51,6 +51,14 @@ var (
 			")\\b\\s+\\S[^`\n]*`",
 	)
 
+	ceDataExfilRegex = regexp.MustCompile(
+		"(?i)" +
+			naturalLanguageTrigger +
+			`(?:curl|wget)\b[^\n]*` +
+			`(?:--data(?:-raw|-binary|-urlencode)?|-d\b|--json)\s+` +
+			`[^\n]*\$\([^\n]*`,
+	)
+
 	// sh -> .sh, .bash, .ksh, .zsh
 	// bash -> .sh, .bash
 	// zsh -> .sh, .zsh
@@ -192,6 +200,17 @@ func DetectInterpreterFile(data string) []string {
 	return ceInterpreterFileRegex.FindAllString(data, -1)
 }
 
+// DetectDataExfiltration extracts curl/wget commands that send locally-executed
+// command output to a remote server. It matches data-upload flags
+// (--data, -d, --data-raw, --data-binary, --data-urlencode, --json) whose
+// argument contains a command substitution ($(...)), indicating the payload
+// includes captured host information (e.g. uname -a, id, cat /etc/passwd).
+//
+// Returns the matching strings, or nil if none are found.
+func DetectDataExfiltration(data string) []string {
+	return ceDataExfilRegex.FindAllString(data, -1)
+}
+
 // DetectUnixWriteFsCommand extracts inline-code spans (backtick-delimited) from data
 // that contain at least one Unix command capable of writing to the filesystem followed
 // by at least one argument.
@@ -264,6 +283,16 @@ func (ce CommandExecution) Detect() ([]findings.Finding, error) {
 			ID:       ce.ID(),
 			Name:     ce.Name(),
 			Message:  "Download-chmod-execute chain detected. Can be used to download and execute malicious binaries",
+			Evidence: fmt.Sprintf("'%s'", r),
+			Severity: findings.High,
+		})
+	}
+
+	for _, r := range DetectDataExfiltration(ce.Data) {
+		f = append(f, findings.Finding{
+			ID:       ce.ID(),
+			Name:     ce.Name(),
+			Message:  "Data exfiltration via curl/wget detected. Command substitution used to capture and transmit host information to an external server",
 			Evidence: fmt.Sprintf("'%s'", r),
 			Severity: findings.High,
 		})
