@@ -83,7 +83,8 @@ func (b64 Base64Encoding) Detect() ([]findings.Finding, error) {
 	f := make([]findings.Finding, 0)
 
 	for _, r := range result {
-		dec, err := base64.StdEncoding.DecodeString(r)
+		payload := b64PrefixRegex.ReplaceAllString(r, "")
+		dec, err := base64.StdEncoding.DecodeString(payload)
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +144,8 @@ func (h HexEncoding) Detect() ([]findings.Finding, error) {
 	f := make([]findings.Finding, 0)
 
 	for _, r := range result {
-		dec, err := hex.DecodeString(r)
+		payload := hexPrefixRegex.ReplaceAllString(r, "")
+		dec, err := hex.DecodeString(payload)
 		if err != nil {
 			return nil, err
 		}
