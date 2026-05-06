@@ -2,6 +2,10 @@ package rules
 
 import "math"
 
+// shannonEntropy calculate the Shannon entropy of a string to detect
+// hardcoded secrets.
+//
+// Inspired by: https://github.com/chrisjchandler/entropy (MIT License)
 func shannonEntropy(s string) float64 {
 	if len(s) == 0 {
 		return 0.0
