@@ -85,16 +85,27 @@ func (b64 Base64Encoding) Detect() ([]findings.Finding, error) {
 
 	for _, r := range result {
 		payload := b64PrefixRegex.ReplaceAllString(r, "")
+
+		// https://github.com/Yelp/detect-secrets/blob/5e141933554a0b74e7341841f318be21e895339c/detect_secrets/plugins/high_entropy_strings.py#L144
+		if shannonEntropy(payload) < 4.5 {
+			continue
+		}
+
 		dec, err := base64.StdEncoding.DecodeString(payload)
 		if err != nil {
 			return nil, err
+		}
+		decStr := string(dec)
+
+		if !utf8.ValidString(decStr) {
+			continue
 		}
 
 		f = append(f, findings.Finding{
 			ID:       b64.ID(),
 			Name:     b64.Name(),
-			Message:  "Base64 string detected. It can be used to perform prompt injection",
-			Evidence: fmt.Sprintf("base64: '%s' - decoded: '%s'", r, string(dec)),
+			Message:  "Base64 string detected. It can be used to perform prompt injection or to obfuscate malicious content",
+			Evidence: fmt.Sprintf("base64: '%s' - decoded: '%s'", r, decStr),
 			Severity: findings.High,
 		})
 	}
@@ -146,16 +157,27 @@ func (h HexEncoding) Detect() ([]findings.Finding, error) {
 
 	for _, r := range result {
 		payload := hexPrefixRegex.ReplaceAllString(r, "")
+
+		// https://github.com/Yelp/detect-secrets/blob/5e141933554a0b74e7341841f318be21e895339c/detect_secrets/plugins/high_entropy_strings.py#L162
+		if shannonEntropy(payload) < 3.0 {
+			continue
+		}
+
 		dec, err := hex.DecodeString(payload)
 		if err != nil {
 			return nil, err
+		}
+		decStr := string(dec)
+
+		if !utf8.ValidString(decStr) {
+			continue
 		}
 
 		f = append(f, findings.Finding{
 			ID:       h.ID(),
 			Name:     h.Name(),
-			Message:  "Hex string detected. It can be used to perform prompt injection",
-			Evidence: fmt.Sprintf("hex: '%s' - decoded: '%s'", r, string(dec)),
+			Message:  "Hex string detected. It can be used to perform prompt injection or to obfuscate malicious content",
+			Evidence: fmt.Sprintf("hex: '%s' - decoded: '%s'", r, decStr),
 			Severity: findings.High,
 		})
 	}
