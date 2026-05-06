@@ -14,13 +14,14 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/utox39/cadrega/pkg/findings"
 )
 
 var (
-	b64FullLineRegex = regexp.MustCompile(`(?m)^([A-Za-z0-9]{4}){4,}([A-Za-z0-9]{3}=|[A-Za-z0-9+/]{2}==)?$`)
-	b64InlineRegex   = regexp.MustCompile(`(b[ase]{0,3}64[,:]\s*)?([A-Za-z0-9]{4}){4,}([A-Za-z0-9]{3}=|[A-Za-z0-9+/]{2}==)?`)
+	b64FullLineRegex = regexp.MustCompile(`(?m)^([A-Za-z0-9]{4}){4,}([A-Za-z0-9\+\/]{3}=|[A-Za-z0-9\+\/]{2}==)?$`)
+	b64InlineRegex   = regexp.MustCompile(`(b[ase]{0,3}64[,:]\s*)?([A-Za-z0-9\+\/]{4}){4,}([A-Za-z0-9]{3}=|[A-Za-z0-9\+\/]{2}==)?`)
 	b64PrefixRegex   = regexp.MustCompile(`^b[ase]{0,3}64[,:]\s*`)
 
 	hexFullLineRegex = regexp.MustCompile(`(?m)^([0-9a-fA-F]{2}){4,}$`)
