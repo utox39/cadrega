@@ -141,9 +141,9 @@ func initPromptInjDetection() {
 // by assigning it an alternative identity or overriding its instructions.
 //
 // Returns the matched keywords or nil if none are found.
-func DetectPromptInjection(data string) ([]string, error) {
+func DetectPromptInjection(data string) []string {
 	// NOTE: At the moment we detect basic prompt injection only
-	return detectBasicPromptInjection(data), nil
+	return detectBasicPromptInjection(data)
 }
 
 // detectBasicPromptInjection performs case-insensitive word-boundary regex matching against
@@ -181,10 +181,7 @@ func (d PromptInjection) Name() string {
 }
 
 func (d PromptInjection) Detect() ([]findings.Finding, error) {
-	result, err := DetectPromptInjection(d.Data)
-	if err != nil {
-		return nil, err
-	}
+	result := DetectPromptInjection(d.Data)
 
 	if result == nil {
 		return nil, nil

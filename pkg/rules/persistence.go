@@ -104,8 +104,8 @@ func detectBasicPersistenceMechanism(data string) []string {
 // behavior that persists across sessions.
 //
 // Returns the matched keywords or nil if none are found.
-func DetectSoulMemoryCorruption(data string) ([]string, error) {
-	return detectBasicPersistenceMechanism(data), nil
+func DetectSoulMemoryCorruption(data string) []string {
+	return detectBasicPersistenceMechanism(data)
 }
 
 type SoulMemoryCorruption struct {
@@ -121,10 +121,7 @@ func (p SoulMemoryCorruption) Name() string {
 }
 
 func (p SoulMemoryCorruption) Detect() ([]findings.Finding, error) {
-	result, err := DetectSoulMemoryCorruption(p.Data)
-	if err != nil {
-		return nil, err
-	}
+	result := DetectSoulMemoryCorruption(p.Data)
 
 	if result == nil {
 		return nil, nil
