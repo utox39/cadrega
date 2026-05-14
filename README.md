@@ -1,17 +1,106 @@
 # Cadrega 🪑🍎
 
+- [Description](#description)
+- [Pipeline](#pipeline)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Usage of LLMs](#usage-of-llms)
+- [Contributing](#contributing)
+- [Resources](#resources)
+- [License](#license)
+
+## Description
+
+>[!NOTE]
+> Cadrega is under active development. Integration with LLMs is not yet available.
+
+Cadrega is an hybrid analysis tool (static analysis + LLM analysis) for malicious [Skills](https://agentskills.io/home)
+
+## Pipeline
+
+```mermaid
+flowchart TD
+    A([Input File]) --> B[Read File]
+    B --> C[runStaticAnalysis]
+
+    C --> P[Pipeline — concurrent via errgroup]
+
+    subgraph P[Pipeline — concurrent via errgroup]
+        direction LR
+        R1["OBF001\nASCII Smuggling"]
+        R2["CEX001\nCommand Execution"]
+        R3["ENC001\nBase64 Encoding"]
+        R4["ENC002\nHex Encoding"]
+        R5["ENC003\nASCII85 Encoding"]
+        R6["INJ001\nPrompt Injection"]
+    end
+
+    R1 -->|"[]Finding"| CH[(findings channel)]
+    R2 -->|"[]Finding"| CH
+    R3 -->|"[]Finding"| CH
+    R4 -->|"[]Finding"| CH
+    R5 -->|"[]Finding"| CH
+    R6 -->|"[]Finding"| CH
+
+    CH --> AGG[Aggregate findings]
+
+    AGG --> LLM[LLM Analysis]
+
+    LLM --> RES([Final Result])
+```
+
+## Requirements
+
+- [Go >= 1.26.1](https://go.dev/)
+- [Ollama](https://ollama.com/) (for local inference)
+
+## Installation
+
+```bash
+# Clone the repo
+$ git clone https://github.com/utox39/cadrega.git
+
+# cd to the path
+$ cd path/to/cadrega
+
+# Build cadrega
+$ go build -ldflags "-w -s" -o cadrega cmd/cadrega/main.go
+
+# Then move it somewhere in your $PATH. Here is an example:
+$ mv ./cadrega ~/bin/
+```
+
+## Usage
+
+```text
+NAME:
+   cadrega - Malicious Skills Detector
+
+USAGE:
+   cadrega [global options] <skillpath>
+
+GLOBAL OPTIONS:
+   --help, -h  show help
+
+```
+
 ## Usage of LLMs
 
 For transparency: LLMs are used (with strict manual review and intervention when
 necessary) to assist me with:
 
-- writing boilerplate code
-- writing documentation
-- creating simple, tedious scripts like [scripts/extract_npm_packages.py](https://github.com/utox39/cadrega/blob/main/scripts/extract_npm_packages.py)
-- writing some regular expressions
-- fixing bugs (especially those related to functions/methods and concepts I’m
+- Writing boilerplate code
+- Writing documentation
+- Creating simple, tedious scripts like [scripts/extract_npm_packages.py](https://github.com/utox39/cadrega/blob/main/scripts/extract_npm_packages.py)
+- Writing some regular expressions
+- Fixing bugs (especially those related to functions/methods and concepts I’m
 not an expert in)
-- brainstorming
+- Brainstorming
+
+## - Contributing
+
+Please see [CONTIBUTING](https://github.com/utox39/cadrega/blob/main/CONTRIBUTING.md). Thanks!
 
 ## Resources
 
@@ -26,3 +115,7 @@ not an expert in)
 - [AST01 — Malicious Skills](https://owasp.org/www-project-agentic-skills-top-10/ast01)
 - [ecosyste-ms/typosquatting-dataset](https://github.com/ecosyste-ms/typosquatting-dataset)
 - [Go code for Shannon entropy](https://github.com/chrisjchandler/entropy)
+
+## License
+
+MIT License. See: [LICENSE](https://github.com/utox39/cadrega/blob/main/LICENSE)
