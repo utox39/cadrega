@@ -52,7 +52,7 @@ flowchart TD
 
 ## Requirements
 
-- [Go >= 1.26.1](https://go.dev/)
+- [Go](https://go.dev/) >= 1.26.1
 - [Ollama](https://ollama.com/) (for local inference)
 
 ## Installation
