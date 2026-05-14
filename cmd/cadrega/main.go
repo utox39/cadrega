@@ -83,13 +83,28 @@ waitloop:
 }
 
 func main() {
+	var skillPath []string
+
 	cmd := &cli.Command{
-		Name:  "cadrega",
-		Usage: "Malicious Skills Detector",
+		Name:      "cadrega",
+		Usage:     "Malicious Skills Detector",
+		ArgsUsage: "<skillpath>",
+		Arguments: []cli.Argument{
+			&cli.StringArgs{
+				Name:        "skillpath",
+				Destination: &skillPath,
+				UsageText:   "The skill path",
+				Min:         1,
+				Max:         1,
+				Config: cli.StringConfig{
+					TrimSpace: true,
+				},
+			},
+		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
 			fmt.Println("Buona questa catreck!")
 
-			content, err := utils.ReadFile(cmd.Args().Get(0))
+			content, err := utils.ReadFile(skillPath[0])
 			if err != nil {
 				return err
 			}
