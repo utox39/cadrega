@@ -83,12 +83,12 @@ waitloop:
 }
 
 func main() {
-	fmt.Println("Buona questa catreck!")
-
 	cmd := &cli.Command{
 		Name:  "cadrega",
 		Usage: "Malicious Skills Detector",
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			fmt.Println("Buona questa catreck!")
+
 			content, err := utils.ReadFile(cmd.Args().Get(0))
 			if err != nil {
 				return err
