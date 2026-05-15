@@ -98,7 +98,7 @@ necessary) to assist me with:
 not an expert in)
 - Brainstorming
 
-## - Contributing
+## Contributing
 
 Please see [CONTIBUTING](https://github.com/utox39/cadrega/blob/main/CONTRIBUTING.md). Thanks!
 
