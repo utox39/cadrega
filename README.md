@@ -34,6 +34,7 @@ flowchart TD
         R4["ENC002\nHex Encoding"]
         R5["ENC003\nASCII85 Encoding"]
         R6["INJ001\nPrompt Injection"]
+        R7["PER001\nSOUL.md / MEMORY.md Corruption"]
     end
 
     R1 -->|"[]Finding"| CH[(findings channel)]
@@ -42,6 +43,7 @@ flowchart TD
     R4 -->|"[]Finding"| CH
     R5 -->|"[]Finding"| CH
     R6 -->|"[]Finding"| CH
+    R7 -->|"[]Finding"| CH
 
     CH --> AGG[Aggregate findings]
 
