@@ -34,6 +34,10 @@ func runStaticAnalysis(content string) ([]findings.Finding, error) {
 		Data: content,
 	}
 
+	smc := rules.SoulMemoryCorruption{
+		Data: content,
+	}
+
 	p := pipeline.NewPipeline([]rules.Rule{
 		smu,
 		cmdExec,
@@ -41,6 +45,7 @@ func runStaticAnalysis(content string) ([]findings.Finding, error) {
 		hex,
 		a85,
 		inj,
+		smc,
 	})
 
 	results := make([]findings.Finding, 0)
