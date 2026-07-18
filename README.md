@@ -83,7 +83,14 @@ USAGE:
    cadrega [global options] <skillpath>
 
 GLOBAL OPTIONS:
-   --help, -h  show help
+   --provider string  the LLM provider to use (ollama, anthropic, openai) (default: "ollama")
+   --model string     the model name to use
+   --address string   the Ollama server address (default: "localhost")
+   --port uint        the Ollama server port (default: 11434)
+   --think            whether the Ollama model should use Thinking
+   --unload-model     whether to unload the model immediately after the LLM analysis is complete
+   --num-ctx uint     the Ollama context window size (in tokens) (default: 8192)
+   --help, -h         show help
 
 ```
 
