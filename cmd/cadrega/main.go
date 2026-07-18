@@ -65,17 +65,15 @@ waitloop:
 		case result := <-f:
 			{
 				results = append(results, result...)
-				for _, f := range result {
-					fmt.Printf("%s\n", f.Format())
-				}
 			}
 		case err := <-errCh:
 			{
+				// If an error occurs, we print the "findings" discovered until the error
 				for len(f) > 0 {
 					result := <-f
 					results = append(results, result...)
 					for _, finding := range result {
-						fmt.Printf("%s\n", finding.Format())
+						fmt.Printf("Finding before error: %s\n", finding.Format())
 					}
 				}
 				if err != nil {
