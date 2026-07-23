@@ -239,7 +239,12 @@ func main() {
 				fmt.Println("-", lf.Format())
 			}
 
-			fmt.Println("Final Verdict:", auditReport.AuditSummary.IntentAlignmentStatus)
+			staticAnalysisVerdict := "MALICIOUS"
+			if len(finds) == 0 {
+				staticAnalysisVerdict = "SAFE"
+			}
+
+			fmt.Printf("Final Verdict:\nStatic Analysis: %s\nLLM Analysis: %s\n\n", staticAnalysisVerdict, auditReport.AuditSummary.IntentAlignmentStatus)
 
 			return nil
 		},
