@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -114,6 +115,7 @@ func main() {
 	var ollamaUnloadModel bool
 	var ollamaNumCtx uint
 	var jsonOutput bool
+	var verbose bool
 
 	cmd := &cli.Command{
 		Name:      "cadrega",
@@ -194,11 +196,23 @@ func main() {
 				Value:       false,
 				Destination: &jsonOutput,
 			},
+			&cli.BoolFlag{
+				Name:        "verbose",
+				Usage:       "get verbose output",
+				Value:       false,
+				Destination: &verbose,
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if verbose {
+				log.SetOutput(os.Stderr)
+			} else {
+				log.SetOutput(io.Discard)
+			}
+
 			if !jsonOutput {
 				fmt.Println("Buona questa catreck!")
-				fmt.Printf("SKILL: %s\nLLM Provider: %s\nModel: %s\nThinking: %t\n", skillPath[0], provider.Name, modelName, ollamaThink)
+				fmt.Printf("- SKILL: %s\n- LLM Provider: %s\n- Model: %s\n- Thinking: %t\n", skillPath[0], provider.Name, modelName, ollamaThink)
 			}
 
 			model := llm.Model{
@@ -282,7 +296,7 @@ func main() {
 					fmt.Println("-", lf.Format())
 				}
 
-				fmt.Printf("Final Verdict:\nStatic Analysis: %s\nLLM Analysis: %s\n\n", staticAnalysisVerdict, auditReport.AuditSummary.IntentAlignmentStatus)
+				fmt.Printf("- Final Verdict:\n> Static Analysis: %s\n> LLM Analysis: %s\n", staticAnalysisVerdict, auditReport.AuditSummary.IntentAlignmentStatus)
 			}
 
 			return nil
