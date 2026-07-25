@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -15,6 +16,13 @@ import (
 	"github.com/utox39/cadrega/pkg/findings"
 	"github.com/utox39/cadrega/pkg/rules"
 )
+
+type outputJSON struct {
+	StaticFindings []findings.Finding `json:"staticFindings"`
+	LLMFindings    []findings.Finding `json:"llmFindings"`
+	StaticVerdict  string             `json:"StaticVerdict"`
+	LLMVerdict     string             `json:"llmVerdict"`
+}
 
 func runStaticAnalysis(content string) ([]findings.Finding, error) {
 	cmdExec := rules.CommandExecution{
@@ -87,6 +95,15 @@ waitloop:
 	return results, nil
 }
 
+func formatOutputAsJSON(oj outputJSON) (string, error) {
+	jsonOutput, err := json.Marshal(oj)
+	if err != nil {
+		return "", err
+	}
+
+	return string(jsonOutput), nil
+}
+
 func main() {
 	var skillPath []string
 	var provider llm.LLMProvider
@@ -96,6 +113,7 @@ func main() {
 	var ollamaThink bool
 	var ollamaUnloadModel bool
 	var ollamaNumCtx uint
+	var jsonOutput bool
 
 	cmd := &cli.Command{
 		Name:      "cadrega",
@@ -170,11 +188,18 @@ func main() {
 				Value:       8192,
 				Destination: &ollamaNumCtx,
 			},
+			&cli.BoolFlag{
+				Name:        "json",
+				Usage:       "get JSON output",
+				Value:       false,
+				Destination: &jsonOutput,
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			fmt.Println("Buona questa catreck!")
-
-			fmt.Printf("SKILL: %s\nLLM Provider: %s\nModel: %s\nThinking: %t\n", skillPath[0], provider.Name, modelName, ollamaThink)
+			if !jsonOutput {
+				fmt.Println("Buona questa catreck!")
+				fmt.Printf("SKILL: %s\nLLM Provider: %s\nModel: %s\nThinking: %t\n", skillPath[0], provider.Name, modelName, ollamaThink)
+			}
 
 			model := llm.Model{
 				Provider: provider,
@@ -197,7 +222,7 @@ func main() {
 			}
 
 			log.Println("Static Analysis: Started...")
-			finds, err := runStaticAnalysis(content)
+			staticFindings, err := runStaticAnalysis(content)
 			if err != nil {
 				return err
 			}
@@ -206,7 +231,7 @@ func main() {
 			// Build the user prompt
 			var findsToStr strings.Builder
 			findsToStr.WriteString("Static Analysis results:")
-			for _, f := range finds {
+			for _, f := range staticFindings {
 				findsToStr.WriteString("- ")
 				findsToStr.WriteString(f.Format())
 				findsToStr.WriteString("\n")
@@ -229,22 +254,36 @@ func main() {
 				return err
 			}
 
-			fmt.Println("Static Analysis Findings: ")
-			for _, f := range finds {
-				fmt.Println("-", f.Format())
-			}
-
-			fmt.Println("LLM Findings: ")
-			for _, lf := range llmFindings {
-				fmt.Println("-", lf.Format())
-			}
-
 			staticAnalysisVerdict := "MALICIOUS"
-			if len(finds) == 0 {
+			if len(staticFindings) == 0 {
 				staticAnalysisVerdict = "SAFE"
 			}
 
-			fmt.Printf("Final Verdict:\nStatic Analysis: %s\nLLM Analysis: %s\n\n", staticAnalysisVerdict, auditReport.AuditSummary.IntentAlignmentStatus)
+			if jsonOutput {
+				vj, err := formatOutputAsJSON(outputJSON{
+					StaticFindings: staticFindings,
+					LLMFindings:    llmFindings,
+					StaticVerdict:  staticAnalysisVerdict,
+					LLMVerdict:     auditReport.AuditSummary.IntentAlignmentStatus,
+				})
+				if err != nil {
+					return err
+				}
+
+				fmt.Println(vj)
+			} else {
+				fmt.Println("Static Analysis Findings: ")
+				for _, f := range staticFindings {
+					fmt.Println("-", f.Format())
+				}
+
+				fmt.Println("LLM Findings: ")
+				for _, lf := range llmFindings {
+					fmt.Println("-", lf.Format())
+				}
+
+				fmt.Printf("Final Verdict:\nStatic Analysis: %s\nLLM Analysis: %s\n\n", staticAnalysisVerdict, auditReport.AuditSummary.IntentAlignmentStatus)
+			}
 
 			return nil
 		},
