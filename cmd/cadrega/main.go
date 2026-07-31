@@ -138,7 +138,6 @@ func main() {
 			&cli.StringFlag{
 				Name:  "provider",
 				Usage: "the LLM provider to use (ollama, anthropic, openai)",
-				Value: "ollama",
 				Action: func(ctx context.Context, cmd *cli.Command, v string) error {
 					switch v {
 					case "ollama":
