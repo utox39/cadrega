@@ -183,7 +183,7 @@ func (m Model) AnalyzeSkill(ctx context.Context, content string) (string, error)
 			panic("TODO")
 		}
 	default:
-		return "", fmt.Errorf("unknown provider %q: valid providers are: anthropic, google, ollama, openai", m.Provider)
+		return "", fmt.Errorf("unknown LLM provider %q: valid providers are: anthropic, google, ollama, openai", m.Provider)
 	}
 
 	if err != nil {
@@ -201,7 +201,7 @@ func ToAuditReport(llmResponse string) (AuditReport, error) {
 	var report AuditReport
 	err := json.Unmarshal([]byte(llmResponse), &report)
 	if err != nil {
-		return AuditReport{}, fmt.Errorf("error unmarshaling JSON: %w", err)
+		return AuditReport{}, fmt.Errorf("LLM Analysis error unmarshaling JSON: %w", err)
 	}
 
 	return report, nil
