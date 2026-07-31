@@ -44,7 +44,6 @@ func runStaticAnalysis(content string) ([]findings.Finding, error) {
 	smu := rules.ASCIISmuggling{
 		Data: content,
 	}
-
 	smc := rules.SoulMemoryCorruption{
 		Data: content,
 	}
