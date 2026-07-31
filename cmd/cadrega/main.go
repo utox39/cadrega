@@ -220,7 +220,7 @@ func main() {
 				log.SetOutput(io.Discard)
 			}
 
-			if !jsonOutput && !tuiOutput {
+			if !jsonOutput {
 				fmt.Println("Buona questa catreck!")
 				fmt.Printf("- SKILL: %s\n- LLM Provider: %s\n- Model: %s\n- Thinking: %t\n", skillPath[0], provider.Name, modelName, ollamaThink)
 			}
