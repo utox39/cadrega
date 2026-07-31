@@ -13,6 +13,7 @@ import (
 
 	"github.com/utox39/cadrega/cmd/cadrega/llm"
 	"github.com/utox39/cadrega/cmd/cadrega/pipeline"
+	"github.com/utox39/cadrega/cmd/cadrega/tui"
 	"github.com/utox39/cadrega/cmd/cadrega/utils"
 	"github.com/utox39/cadrega/pkg/findings"
 	"github.com/utox39/cadrega/pkg/rules"
@@ -113,8 +114,9 @@ func main() {
 	var ollamaThink bool
 	var ollamaUnloadModel bool
 	var ollamaNumCtx uint
-	var jsonOutput bool
 	var verbose bool
+	var jsonOutput bool
+	var tuiOutput bool
 
 	cmd := &cli.Command{
 		Name:      "cadrega",
@@ -200,15 +202,25 @@ func main() {
 				Value:       false,
 				Destination: &verbose,
 			},
+			&cli.BoolFlag{
+				Name:        "tui",
+				Usage:       "show results in an interactive TUI",
+				Value:       false,
+				Destination: &tuiOutput,
+			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
+			if jsonOutput && tuiOutput {
+				return fmt.Errorf("--tui and --json cannot be used together")
+			}
+
 			if verbose {
 				log.SetOutput(os.Stderr)
 			} else {
 				log.SetOutput(io.Discard)
 			}
 
-			if !jsonOutput {
+			if !jsonOutput && !tuiOutput {
 				fmt.Println("Buona questa catreck!")
 				fmt.Printf("- SKILL: %s\n- LLM Provider: %s\n- Model: %s\n- Thinking: %t\n", skillPath[0], provider.Name, modelName, ollamaThink)
 			}
@@ -271,7 +283,17 @@ func main() {
 				staticAnalysisVerdict = "SAFE"
 			}
 
-			if jsonOutput {
+			switch {
+			case tuiOutput:
+				return tui.RunTUI(tui.TuiData{
+					StaticFindings: staticFindings,
+					LLMFindings:    llmFindings,
+					StaticVerdict:  staticAnalysisVerdict,
+					LLMVerdict:     auditReport.AuditSummary.IntentAlignmentStatus,
+					LLMOutput:      llmResult,
+					Verbose:        verbose,
+				})
+			case jsonOutput:
 				vj, err := formatOutputAsJSON(outputJSON{
 					StaticFindings: staticFindings,
 					LLMFindings:    llmFindings,
@@ -283,7 +305,7 @@ func main() {
 				}
 
 				fmt.Println(vj)
-			} else {
+			default:
 				fmt.Println("Static Analysis Findings: ")
 				for _, f := range staticFindings {
 					fmt.Println("-", f.Format())
