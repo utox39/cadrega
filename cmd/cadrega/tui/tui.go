@@ -14,11 +14,19 @@ import (
 )
 
 const (
-	tabBarHeight  = 1
-	helpBarHeight = 1
+	title = "Cadrega: buona questa catreck!"
+
+	titleBarHeight = 1
+	tabBarHeight   = 1
+	helpBarHeight  = 1
 )
 
 var (
+	titleStyle = lipgloss.NewStyle().
+			Bold(true).
+			Padding(0, 2).
+			Foreground(lipgloss.Color("15"))
+
 	activeTabStyle = lipgloss.NewStyle().
 			Bold(true).
 			Padding(0, 2).
@@ -180,7 +188,7 @@ func (m tuiModel) renderTabBar() (string, [][2]int) {
 }
 
 func (m *tuiModel) setSize(width, height int) {
-	contentHeight := max(height-tabBarHeight-helpBarHeight, 0)
+	contentHeight := max(height-titleBarHeight-tabBarHeight-helpBarHeight, 0)
 
 	for i := range m.sections {
 		m.sections[i].viewport.SetWidth(width)
@@ -209,7 +217,7 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseClickMsg:
 		mouse := msg.Mouse()
-		if mouse.Button == tea.MouseLeft && mouse.Y == 0 {
+		if mouse.Button == tea.MouseLeft && mouse.Y == titleBarHeight {
 			_, bounds := m.renderTabBar()
 			for i, b := range bounds {
 				if mouse.X >= b[0] && mouse.X < b[1] {
@@ -236,6 +244,7 @@ func (m tuiModel) View() tea.View {
 
 	content := lipgloss.JoinVertical(
 		lipgloss.Left,
+		titleStyle.Render(title),
 		tabBar,
 		m.sections[m.active].viewport.View(),
 		help,
