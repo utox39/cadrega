@@ -19,11 +19,23 @@ import (
 	"github.com/utox39/cadrega/pkg/rules"
 )
 
+type Verdict struct{ Name string }
+
+var (
+	Safe       = Verdict{"SAFE"}
+	Suspicious = Verdict{"SUSPICIOUS"}
+	Malicious  = Verdict{"MALICIOUS"}
+)
+
+func (v Verdict) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.Name)
+}
+
 type outputJSON struct {
 	StaticFindings []findings.Finding `json:"staticFindings"`
 	LLMFindings    []findings.Finding `json:"llmFindings"`
-	StaticVerdict  string             `json:"StaticVerdict"`
-	LLMVerdict     string             `json:"llmVerdict"`
+	StaticVerdict  Verdict            `json:"staticVerdict"`
+	LLMVerdict     Verdict            `json:"llmVerdict"`
 }
 
 func runStaticAnalysis(content string) ([]findings.Finding, error) {
@@ -278,9 +290,9 @@ func main() {
 				return err
 			}
 
-			staticAnalysisVerdict := "MALICIOUS"
+			staticAnalysisVerdict := Malicious
 			if len(staticFindings) == 0 {
-				staticAnalysisVerdict = "SAFE"
+				staticAnalysisVerdict = Safe
 			}
 
 			switch {
@@ -288,7 +300,7 @@ func main() {
 				return tui.RunTUI(tui.TuiData{
 					StaticFindings: staticFindings,
 					LLMFindings:    llmFindings,
-					StaticVerdict:  staticAnalysisVerdict,
+					StaticVerdict:  staticAnalysisVerdict.Name,
 					LLMVerdict:     auditReport.AuditSummary.IntentAlignmentStatus,
 					LLMOutput:      llmResult,
 					Verbose:        verbose,
@@ -298,7 +310,7 @@ func main() {
 					StaticFindings: staticFindings,
 					LLMFindings:    llmFindings,
 					StaticVerdict:  staticAnalysisVerdict,
-					LLMVerdict:     auditReport.AuditSummary.IntentAlignmentStatus,
+					LLMVerdict:     Verdict{Name: auditReport.AuditSummary.IntentAlignmentStatus},
 				})
 				if err != nil {
 					return err
@@ -316,7 +328,7 @@ func main() {
 					fmt.Println("-", lf.Format())
 				}
 
-				fmt.Printf("- Final Verdict:\n> Static Analysis: %s\n> LLM Analysis: %s\n", staticAnalysisVerdict, auditReport.AuditSummary.IntentAlignmentStatus)
+				fmt.Printf("- Final Verdict:\n> Static Analysis: %s\n> LLM Analysis: %s\n", staticAnalysisVerdict.Name, auditReport.AuditSummary.IntentAlignmentStatus)
 			}
 
 			return nil
