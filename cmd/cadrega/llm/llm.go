@@ -7,6 +7,7 @@ import (
 	_ "embed"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,6 +19,8 @@ import (
 
 	"github.com/utox39/cadrega/pkg/findings"
 
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/ollama/ollama/api"
 )
 
@@ -33,6 +36,12 @@ var (
 //go:embed prompts/prompt.md
 var systemPrompt string
 
+type Model struct {
+	Config   ModelConfig
+	Name     string
+	Provider LLMProvider
+}
+
 type ModelConfig struct {
 	APIKey      string
 	Address     string
@@ -42,13 +51,7 @@ type ModelConfig struct {
 	UnloadModel bool // Ollama only
 }
 
-type Model struct {
-	Config   ModelConfig
-	Name     string
-	Provider LLMProvider
-}
-
-type ollamaConfig struct {
+type providerConfig struct {
 	modelInfo    Model
 	systemPrompt string
 	userPrompt   string
@@ -77,9 +80,9 @@ type Vulnerability struct {
 	Remediation       string `json:"remediation"`
 }
 
-func (oc ollamaConfig) runOllamaModel(ctx context.Context) (string, error) {
-	ollamaPort := strconv.FormatUint(uint64(oc.modelInfo.Config.Port), 10)
-	serverURL, err := url.Parse("http://" + oc.modelInfo.Config.Address + ":" + ollamaPort)
+func (pc providerConfig) runOllamaModel(ctx context.Context) (string, error) {
+	ollamaPort := strconv.FormatUint(uint64(pc.modelInfo.Config.Port), 10)
+	serverURL, err := url.Parse("http://" + pc.modelInfo.Config.Address + ":" + ollamaPort)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse Ollama server URL: %w", err)
 	}
@@ -87,12 +90,12 @@ func (oc ollamaConfig) runOllamaModel(ctx context.Context) (string, error) {
 	client := api.NewClient(serverURL, http.DefaultClient)
 
 	req := &api.GenerateRequest{
-		Model:  oc.modelInfo.Name,
-		System: oc.systemPrompt,
-		Prompt: oc.userPrompt,
+		Model:  pc.modelInfo.Name,
+		System: pc.systemPrompt,
+		Prompt: pc.userPrompt,
 		Stream: new(bool),
 		Options: map[string]any{
-			"num_ctx": oc.modelInfo.Config.NumCtx,
+			"num_ctx": pc.modelInfo.Config.NumCtx,
 		},
 	}
 
@@ -106,19 +109,19 @@ func (oc ollamaConfig) runOllamaModel(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("ollama generation error: %w", err)
 	}
 
-	if oc.modelInfo.Config.UnloadModel {
+	if pc.modelInfo.Config.UnloadModel {
 		// We don't return this error because it doesn't block the execution of `cadrega`
-		if err := oc.unloadOllamaModel(ctx, client); err != nil {
-			log.Println("Ollama: failed to unload the model:", oc.modelInfo.Name)
+		if err := pc.unloadOllamaModel(ctx, client); err != nil {
+			log.Println("Ollama: failed to unload the model:", pc.modelInfo.Name)
 		}
 	}
 
 	return llmResponse, nil
 }
 
-func (oc ollamaConfig) unloadOllamaModel(ctx context.Context, client *api.Client) error {
+func (pc providerConfig) unloadOllamaModel(ctx context.Context, client *api.Client) error {
 	req := &api.GenerateRequest{
-		Model:     oc.modelInfo.Name,
+		Model:     pc.modelInfo.Name,
 		Prompt:    "",
 		KeepAlive: &api.Duration{Duration: 0 * time.Second},
 	}
@@ -130,6 +133,59 @@ func (oc ollamaConfig) unloadOllamaModel(ctx context.Context, client *api.Client
 	}
 
 	return nil
+}
+
+// parseAnthropicModelName validates that name is a model the Anthropic API
+// currently recognizes, by asking the Models API rather than checking it
+// against a hardcoded list. This means newly released models work as soon
+// as the user types them, with no code change needed here.
+func parseAnthropicModelName(ctx context.Context, client anthropic.Client, name string) (anthropic.Model, error) {
+	if name == "" {
+		return "", fmt.Errorf("model name is required")
+	}
+
+	if _, err := client.Models.Get(ctx, name, anthropic.ModelGetParams{}); err != nil {
+		var apiErr *anthropic.Error
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+			return "", fmt.Errorf("unknown model %q", name)
+		}
+		return "", fmt.Errorf("failed to validate model %q: %w", name, err)
+	}
+
+	return anthropic.Model(name), nil
+}
+
+func (pc providerConfig) runAnthropicModel(ctx context.Context) (string, error) {
+	client := anthropic.NewClient(
+		option.WithAPIKey(pc.modelInfo.Config.APIKey), // defaults to os.LookupEnv("ANTHROPIC_API_KEY")
+	)
+
+	modelName, err := parseAnthropicModelName(ctx, client, pc.modelInfo.Name)
+	if err != nil {
+		return "", fmt.Errorf("anthropic: %v", err)
+	}
+
+	message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
+		MaxTokens: 1024,
+		Messages: []anthropic.MessageParam{
+			// The Anthropic SDK does not provide a method for system prompt messages, so “User Message” will be used.
+			anthropic.NewUserMessage(anthropic.NewTextBlock(pc.systemPrompt)),
+			anthropic.NewUserMessage(anthropic.NewTextBlock(pc.userPrompt)),
+		},
+		Model: modelName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("anthropic: %v", err)
+	}
+
+	var llmOutput strings.Builder
+	for _, block := range message.Content {
+		if textBlock, ok := block.AsAny().(anthropic.TextBlock); ok {
+			llmOutput.WriteString(textBlock.Text)
+		}
+	}
+
+	return llmOutput.String(), nil
 }
 
 // randomDelimiterToken returns a fresh random hex token used to delimit
@@ -159,10 +215,16 @@ func (m Model) AnalyzeSkill(ctx context.Context, content string) (string, error)
 		token, content, token,
 	)
 
+	pc := providerConfig{
+		modelInfo:    m,
+		systemPrompt: systemPrompt,
+		userPrompt:   content,
+	}
+
 	switch m.Provider {
 	case Anthropic:
 		{
-			panic("TODO")
+			llmResponse, err = pc.runAnthropicModel(ctx)
 		}
 	// case Google:
 	// 	{
@@ -170,13 +232,7 @@ func (m Model) AnalyzeSkill(ctx context.Context, content string) (string, error)
 	// 	}
 	case Ollama:
 		{
-			ollamaCf := ollamaConfig{
-				modelInfo:    m,
-				systemPrompt: systemPrompt,
-				userPrompt:   content,
-			}
-
-			llmResponse, err = ollamaCf.runOllamaModel(ctx)
+			llmResponse, err = pc.runOllamaModel(ctx)
 		}
 	case OpenAI:
 		{
