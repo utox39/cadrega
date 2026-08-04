@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -112,7 +111,7 @@ func (pc providerConfig) runOllamaModel(ctx context.Context) (string, error) {
 	if pc.modelInfo.Config.UnloadModel {
 		// We don't return this error because it doesn't block the execution of `cadrega`
 		if err := pc.unloadOllamaModel(ctx, client); err != nil {
-			log.Println("Ollama: failed to unload the model:", pc.modelInfo.Name)
+			fmt.Println("Ollama: failed to unload the model:", pc.modelInfo.Name)
 		}
 	}
 

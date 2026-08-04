@@ -337,6 +337,8 @@ func main() {
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
+		log.SetPrefix(fmt.Sprintf("%s: ", os.Args[0]))
+		log.SetFlags(0)
 		log.Fatalln(err)
 	}
 }
