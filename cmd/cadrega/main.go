@@ -227,9 +227,10 @@ func main() {
 				return fmt.Errorf("--tui and --json cannot be used together")
 			}
 
-			if verbose {
-				log.SetOutput(os.Stderr)
-			} else {
+			// By default, the log output is discarded.
+			// The default value of the `verbose` flag is false.
+			// If the user uses the `verbose` flag, the logger's output is written to stderr (by default).
+			if !verbose {
 				log.SetOutput(io.Discard)
 			}
 
