@@ -13,7 +13,7 @@
 ## Description
 
 >[!NOTE]
-> Cadrega is under active development. Integration with LLMs is limited to Ollama.
+> Cadrega is under active development. Integration with LLMs is limited to Ollama and Claude.
 
 Cadrega is an hybrid analysis tool (static analysis + LLM analysis) for malicious [Skills](https://agentskills.io/home)
 
@@ -83,13 +83,16 @@ USAGE:
    cadrega [global options] <skillpath>
 
 GLOBAL OPTIONS:
-   --provider string  the LLM provider to use (ollama, anthropic, openai) (default: "ollama")
+   --provider string  the LLM provider to use (ollama, anthropic, openai)
    --model string     the model name to use
    --address string   the Ollama server address (default: "localhost")
    --port uint        the Ollama server port (default: 11434)
    --think            whether the Ollama model should use Thinking
    --unload-model     whether to unload the model immediately after the LLM analysis is complete
    --num-ctx uint     the Ollama context window size (in tokens) (default: 8192)
+   --json             get JSON output
+   --verbose          get verbose output
+   --tui              show results in an interactive TUI
    --help, -h         show help
 
 ```
