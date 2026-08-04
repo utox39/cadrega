@@ -147,10 +147,10 @@ func main() {
 			},
 		},
 		Flags: []cli.Flag{
-			// TODO: when the user specify --provider, --model must be specified too
 			&cli.StringFlag{
-				Name:  "provider",
-				Usage: "the LLM provider to use (ollama, anthropic, openai)",
+				Name:     "provider",
+				Usage:    "the LLM provider to use (ollama, anthropic, openai)",
+				Required: true,
 				Action: func(ctx context.Context, cmd *cli.Command, v string) error {
 					switch v {
 					case "ollama":
@@ -170,6 +170,7 @@ func main() {
 			&cli.StringFlag{
 				Name:        "model",
 				Usage:       "the model name to use",
+				Required:    true,
 				Destination: &modelName,
 			},
 			&cli.StringFlag{
