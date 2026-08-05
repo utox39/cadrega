@@ -8,7 +8,7 @@ build:
 	$(GO) build -ldflags "$(LDFLAGS)" -o $(OUTPUT) cmd/cadrega/main.go
 
 test:
-	$(GO) test ./...
+	$(GO) test ./... -v
 
 clean:
 	$(GO) clean
