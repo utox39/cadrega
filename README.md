@@ -61,16 +61,19 @@ flowchart TD
 
 ```bash
 # Clone the repo
-$ git clone https://github.com/utox39/cadrega.git
+git clone https://github.com/utox39/cadrega.git
 
 # cd to the path
-$ cd path/to/cadrega
+cd path/to/cadrega
 
-# Build cadrega
-$ go build -ldflags "-w -s" -o cadrega cmd/cadrega/main.go
+# Build cadrega manually
+go build -ldflags "-w -s" -o cadrega cmd/cadrega/main.go
+
+# Or via the Makefile
+make
 
 # Then move it somewhere in your $PATH. Here is an example:
-$ mv ./cadrega ~/bin/
+mv ./cadrega ~/bin/
 ```
 
 ## Usage
