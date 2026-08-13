@@ -25,6 +25,7 @@ var (
 	Safe       = Verdict{"SAFE"}
 	Suspicious = Verdict{"SUSPICIOUS"}
 	Malicious  = Verdict{"MALICIOUS"}
+	Unknown    = Verdict{"UNKNOWN"}
 )
 
 func (v Verdict) MarshalJSON() ([]byte, error) {
@@ -260,9 +261,12 @@ func main() {
 			}
 
 			log.Println("Static Analysis: Started...")
-			staticFindings, err := runStaticAnalysis(content)
-			if err != nil {
-				return err
+			staticFindings, staticErr := runStaticAnalysis(content)
+			if staticErr != nil {
+				// In order to perform the LLM analysis, any errors from the static analysis
+				// are logged and the analysis continues with the partial findings generated
+				// by the static analysis.
+				fmt.Fprintf(os.Stderr, "static analysis: %v (continuing with partial results)\n", staticErr)
 			}
 			log.Println("Static Analysis: Done.")
 
@@ -293,7 +297,10 @@ func main() {
 			}
 
 			staticAnalysisVerdict := Malicious
-			if len(staticFindings) == 0 {
+			switch {
+			case staticErr != nil:
+				staticAnalysisVerdict = Unknown
+			case len(staticFindings) == 0:
 				staticAnalysisVerdict = Safe
 			}
 
