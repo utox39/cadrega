@@ -83,9 +83,33 @@ NAME:
    cadrega - Malicious Skills Detector
 
 USAGE:
-   cadrega [global options] <skillpath>
+   cadrega [global options] [command [command options]]
+
+VERSION:
+   0.1.0
+
+COMMANDS:
+   scan     analyze a skill
+   serve    run cadrega as an HTTP service
+   help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --verbose      get verbose output
+   --help, -h     show help
+   --version, -v  print the version
+
+```
+
+### cadrega scan
+
+```text
+NAME:
+   cadrega scan - analyze a skill
+
+USAGE:
+   cadrega scan [options] <skillpath>
+
+OPTIONS:
    --provider string  the LLM provider to use (ollama, anthropic, openai)
    --model string     the model name to use
    --address string   the Ollama server address (default: "localhost")
@@ -94,10 +118,71 @@ GLOBAL OPTIONS:
    --unload-model     whether to unload the model immediately after the LLM analysis is complete
    --num-ctx uint     the Ollama context window size (in tokens) (default: 8192)
    --json             get JSON output
-   --verbose          get verbose output
    --tui              show results in an interactive TUI
    --help, -h         show help
 
+GLOBAL OPTIONS:
+   --verbose  get verbose output
+```
+
+### cadrega serve
+
+```text
+NAME:
+   cadrega serve - run cadrega as an HTTP service
+
+USAGE:
+   cadrega serve [options]
+
+OPTIONS:
+   --address string  the address the HTTP server listens on (default: "localhost")
+   --port uint       the port the HTTP server listens on (default: 8080)
+   --help, -h        show help
+
+GLOBAL OPTIONS:
+   --verbose  get verbose output
+```
+
+#### Make a POST request to `/analyze`
+
+```bash
+curl --location --request POST 'localhost:8080/analyze' \
+--header 'Content-Type: application/json' \
+--data '{
+    "provider": "ollama",
+    "model_name": "gemma4:12b",
+    "ollama_address": "192.168.0.218",
+    "ollama_port": 11434,
+    "ollama_think": true,
+    "ollama_unload_model": false,
+    "ollama_num_ctx": 16384,
+    "skill_content": "this is just a test."
+}'
+```
+
+#### Open the Web UI
+
+Go to: `[cadrega_address]:[cadrega_port]` (e.g. `localhost:8080`)
+
+### Run Cadrega in a Docker container
+
+```bash
+# cd to the path
+cd path/to/cadrega
+
+### Method 1 ###
+# Build it
+docker build -t cadrega .
+
+# Run it (-d is required: without it, Ctrl-C or closing the terminal kills the container)
+docker run -d -p 9090:8080 cadrega # host:9090 - container:8080 (both ports are customizable)
+
+# To change the port cadrega listens on inside the container, override the default CMD:
+docker run -d -p 9090:9090 cadrega --port 9090
+################
+
+### Method 2 ###
+docker compose up -d --build # listens on localhost:8080 by default, see docker-compose.yaml
 ```
 
 ## Usage of LLMs
