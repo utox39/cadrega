@@ -1,0 +1,279 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1115;
+  --panel: #171a21;
+  --border: #2a2f3a;
+  --text: #e6e8eb;
+  --muted: #9aa2ad;
+  --accent: #6ea8fe;
+  --safe: #3fb950;
+  --suspicious: #d29922;
+  --malicious: #f85149;
+  --unknown: #8b949e;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #d7dbe0;
+    --text: #1b1f24;
+    --muted: #57606a;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 2rem 1rem 4rem;
+}
+
+main {
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+p.subtitle {
+  color: var(--muted);
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.dropzone {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.dropzone .filename {
+  margin-top: 0.5rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.dropzone .hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+input[type="file"] {
+  display: none;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.field {
+  margin-bottom: 1rem;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.checkbox-row label {
+  margin: 0;
+  color: var(--text);
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0 0 1rem;
+  padding: 1rem;
+}
+
+legend {
+  padding: 0 0.4rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+button {
+  background: var(--accent);
+  color: #08111f;
+  border: none;
+  border-radius: 6px;
+  padding: 0.65rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #08111f;
+}
+
+/* Verdict badges (staticVerdict / llmVerdict). */
+.badge.SAFE {
+  background: var(--safe);
+}
+
+.badge.SUSPICIOUS {
+  background: var(--suspicious);
+}
+
+.badge.MALICIOUS {
+  background: var(--malicious);
+}
+
+.badge.UNKNOWN,
+.badge.unmapped {
+  background: var(--unknown);
+}
+
+/* Finding severity badges (findings.Severity: LOW/MEDIUM/HIGH). */
+.badge.LOW {
+  background: var(--safe);
+}
+
+.badge.MEDIUM {
+  background: var(--suspicious);
+}
+
+.badge.HIGH {
+  background: var(--malicious);
+}
+
+.verdicts {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.verdicts div {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.verdicts .badge {
+  margin-top: 0.3rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.finding {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.finding-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+}
+
+.finding-head strong {
+  font-size: 0.95rem;
+}
+
+.finding-id {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.finding p {
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+}
+
+.finding pre {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.6rem;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.error-box {
+  border: 1px solid var(--malicious);
+  background: color-mix(in srgb, var(--malicious) 12%, transparent);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: var(--text);
+  white-space: pre-wrap;
+  font-size: 0.9rem;
+}
