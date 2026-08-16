@@ -146,19 +146,21 @@ GLOBAL OPTIONS:
 #### Make a POST request to `/analyze`
 
 ```bash
-curl --location --request POST 'localhost:8080/analyze' \
+curl --location --request POST '<cadrega-address>:<cadrega-port>/analyze' \
 --header 'Content-Type: application/json' \
 --data '{
     "provider": "ollama",
     "model_name": "gemma4:12b",
-    "ollama_address": "192.168.0.218",
-    "ollama_port": 11434,
+    "ollama_address": "<ollama-address>",
+    "ollama_port": <ollama-port>,
     "ollama_think": true,
     "ollama_unload_model": false,
     "ollama_num_ctx": 16384,
     "skill_content": "this is just a test."
 }'
 ```
+
+Defaults: `<cadrega-address>:<cadrega-port>` is `localhost:8080` (see `cadrega serve`'s `--address`/`--port`); `<ollama-address>` and `<ollama-port>` default to `localhost` and `11434` if omitted, or point them at wherever your Ollama instance actually runs.
 
 #### Open the Web UI
 
