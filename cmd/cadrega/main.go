@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,111 +11,11 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/utox39/cadrega/cmd/cadrega/llm"
-	"github.com/utox39/cadrega/cmd/cadrega/pipeline"
+	"github.com/utox39/cadrega/cmd/cadrega/results"
+	"github.com/utox39/cadrega/cmd/cadrega/staticanalysis"
 	"github.com/utox39/cadrega/cmd/cadrega/tui"
 	"github.com/utox39/cadrega/cmd/cadrega/utils"
-	"github.com/utox39/cadrega/pkg/findings"
-	"github.com/utox39/cadrega/pkg/rules"
 )
-
-type Verdict struct{ Name string }
-
-var (
-	Safe       = Verdict{"SAFE"}
-	Suspicious = Verdict{"SUSPICIOUS"}
-	Malicious  = Verdict{"MALICIOUS"}
-	Unknown    = Verdict{"UNKNOWN"}
-)
-
-func (v Verdict) MarshalJSON() ([]byte, error) {
-	return json.Marshal(v.Name)
-}
-
-type outputJSON struct {
-	StaticFindings []findings.Finding `json:"staticFindings"`
-	LLMFindings    []findings.Finding `json:"llmFindings"`
-	StaticVerdict  Verdict            `json:"staticVerdict"`
-	LLMVerdict     Verdict            `json:"llmVerdict"`
-}
-
-func runStaticAnalysis(content string) ([]findings.Finding, error) {
-	cmdExec := rules.CommandExecution{
-		Data: content,
-	}
-	b64 := rules.Base64Encoding{
-		Data: content,
-	}
-	hex := rules.HexEncoding{
-		Data: content,
-	}
-	a85 := rules.ASCII85Encoding{
-		Data: content,
-	}
-	inj := rules.PromptInjection{
-		Data: content,
-	}
-	smu := rules.ASCIISmuggling{
-		Data: content,
-	}
-	smc := rules.SoulMemoryCorruption{
-		Data: content,
-	}
-
-	p := pipeline.NewPipeline([]rules.Rule{
-		smu,
-		cmdExec,
-		b64,
-		hex,
-		a85,
-		inj,
-		smc,
-	})
-
-	results := make([]findings.Finding, 0)
-	f := make(chan []findings.Finding, len(p.Rules))
-	defer close(f)
-	errCh := make(chan error, 1)
-
-	go func() {
-		errCh <- p.Run(f)
-	}()
-
-waitloop:
-	for {
-		select {
-		case result := <-f:
-			{
-				results = append(results, result...)
-			}
-		case err := <-errCh:
-			{
-				// If an error occurs, we print the "findings" discovered until the error
-				for len(f) > 0 {
-					result := <-f
-					results = append(results, result...)
-					for _, finding := range result {
-						fmt.Printf("Finding before error: %s\n", finding.Format())
-					}
-				}
-				if err != nil {
-					return results, err
-				}
-				break waitloop
-			}
-		}
-	}
-
-	return results, nil
-}
-
-func formatOutputAsJSON(oj outputJSON) (string, error) {
-	jsonOutput, err := json.Marshal(oj)
-	if err != nil {
-		return "", err
-	}
-
-	return string(jsonOutput), nil
-}
 
 func main() {
 	var skillPath []string
@@ -261,7 +160,7 @@ func main() {
 			}
 
 			log.Println("Static Analysis: Started...")
-			staticFindings, staticErr := runStaticAnalysis(content)
+			staticFindings, staticErr := staticanalysis.RunStaticAnalysis(content)
 			if staticErr != nil {
 				// In order to perform the LLM analysis, any errors from the static analysis
 				// are logged and the analysis continues with the partial findings generated
@@ -296,12 +195,12 @@ func main() {
 				return err
 			}
 
-			staticAnalysisVerdict := Malicious
+			staticAnalysisVerdict := results.Malicious
 			switch {
 			case staticErr != nil:
-				staticAnalysisVerdict = Unknown
+				staticAnalysisVerdict = results.Unknown
 			case len(staticFindings) == 0:
-				staticAnalysisVerdict = Safe
+				staticAnalysisVerdict = results.Safe
 			}
 
 			switch {
@@ -315,12 +214,13 @@ func main() {
 					Verbose:        verbose,
 				})
 			case jsonOutput:
-				vj, err := formatOutputAsJSON(outputJSON{
+				rj := results.ResultsJSON{
 					StaticFindings: staticFindings,
 					LLMFindings:    llmFindings,
 					StaticVerdict:  staticAnalysisVerdict,
-					LLMVerdict:     Verdict{Name: auditReport.AuditSummary.IntentAlignmentStatus},
-				})
+					LLMVerdict:     results.Verdict{Name: auditReport.AuditSummary.IntentAlignmentStatus},
+				}
+				vj, err := rj.FormatAsJSON()
 				if err != nil {
 					return err
 				}
