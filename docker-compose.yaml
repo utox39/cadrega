@@ -1,0 +1,8 @@
+services:
+  cadrega:
+    build: .
+    ports:
+      - "8080:8080"
+    # --port must match the container-side port above (8080); see Dockerfile.
+    command: ["--port", "8080"]
+    restart: unless-stopped
