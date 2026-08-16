@@ -32,6 +32,42 @@ var (
 	OpenAI = LLMProvider{"openai"}
 )
 
+// ParseLLMProvider parses a provider name (e.g. "ollama") into an LLMProvider.
+func ParseLLMProvider(name string) (LLMProvider, error) {
+	switch name {
+	case Anthropic.Name:
+		return Anthropic, nil
+	case Ollama.Name:
+		return Ollama, nil
+	case OpenAI.Name:
+		return OpenAI, nil
+	default:
+		return LLMProvider{}, fmt.Errorf("invalid provider %q: must be one of: ollama, anthropic, openai", name)
+	}
+}
+
+// MarshalJSON encodes an LLMProvider as its plain name, e.g. "ollama".
+func (p LLMProvider) MarshalJSON() ([]byte, error) {
+	return json.Marshal(p.Name)
+}
+
+// UnmarshalJSON decodes a JSON string (e.g. "ollama") into an LLMProvider,
+// validating it against the known providers via ParseLLMProvider.
+func (p *LLMProvider) UnmarshalJSON(data []byte) error {
+	var name string
+	if err := json.Unmarshal(data, &name); err != nil {
+		return err
+	}
+
+	provider, err := ParseLLMProvider(name)
+	if err != nil {
+		return err
+	}
+
+	*p = provider
+	return nil
+}
+
 //go:embed prompts/prompt.md
 var systemPrompt string
 
