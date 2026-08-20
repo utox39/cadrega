@@ -7,10 +7,14 @@
 """
 Evaluation harness for cadrega.
 
-Runs the cadrega binary (static analysis + LLM analysis, via --json) against
-every skill listed in a manifest file, compares the reported verdicts against
-the expected label, and prints a confusion matrix / precision / recall / F1
-for both the static analyzer and the LLM analyzer.
+Calls a running `cadrega serve` instance's POST /analyze endpoint for every
+skill listed in a manifest file, compares the reported verdicts against the
+expected label, and prints a confusion matrix / precision / recall / F1 for
+both the static analyzer and the LLM analyzer.
+
+Requires a cadrega server already running, e.g.:
+
+    cadrega serve --address localhost --port 8080
 
 Manifest format (CSV, header required):
 
@@ -24,7 +28,7 @@ absolute. `label` must be "benign" or "malicious" (case-insensitive).
 Usage:
     python scripts/eval_skills.py \\
         --manifest skills_manifest.csv \\
-        --binary ./cadrega \\
+        --url http://localhost:8080 \\
         --provider ollama --model llama3.1 \\
         --output results.json
 """
@@ -33,13 +37,16 @@ import argparse
 import concurrent.futures
 import csv
 import json
-import subprocess
 import sys
+
+# TODO: visit: https://docs.python.org/3/library/urllib.request.html#module-urllib.request
+import urllib.error
+import urllib.request
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 VALID_LABELS = {"benign", "malicious"}
-VALID_VERDICTS = {"SAFE", "MALICIOUS", "SUSPICIOUS"}
+VALID_VERDICTS = {"SAFE", "MALICIOUS", "SUSPICIOUS", "UNKNOWN"}
 
 
 @dataclass
@@ -121,56 +128,61 @@ def load_manifest(manifest_path: Path) -> list[ManifestEntry]:
     return entries
 
 
-def run_cadrega(
-    binary: str, skill_path: Path, args: argparse.Namespace, timeout: float
+def call_analyze_api(
+    url: str, skill_path: Path, args: argparse.Namespace, timeout: float
 ) -> SampleResult:
     result = SampleResult(path=str(skill_path), label="")  # label filled in by caller
 
-    cmd = [
-        binary,
-        "--json",
-        "--provider",
-        args.provider,
-        "--model",
-        args.model,
-    ]
+    try:
+        skill_content = skill_path.read_text(encoding="utf-8")
+    except OSError as e:
+        result.error = f"failed to read skill file: {e}"
+        return result
+
+    payload = {
+        "provider": args.provider,
+        "model_name": args.model,
+        "skill_content": skill_content,
+    }
     if args.provider == "ollama":
-        cmd += [
-            "--address",
-            args.address,
-            "--port",
-            str(args.port),
-            "--num-ctx",
-            str(args.num_ctx),
-        ]
-        if args.think:
-            cmd.append("--think")
-        if args.unload_model:
-            cmd.append("--unload-model")
-    cmd.append(str(skill_path))
+        payload.update(
+            {
+                "ollama_address": args.ollama_address,
+                "ollama_port": args.ollama_port,
+                "ollama_think": args.ollama_think,
+                "ollama_unload_model": args.ollama_unload_model,
+                "ollama_num_ctx": args.ollama_num_ctx,
+            }
+        )
+
+    request = urllib.request.Request(
+        url.rstrip("/") + "/analyze",
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
 
     try:
-        print(cmd)
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=timeout, check=False
-        )
-    except subprocess.TimeoutExpired:
+        with urllib.request.urlopen(request, timeout=timeout) as resp:
+            body = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as e:
+        body_text = e.read().decode("utf-8", errors="replace")
+        result.error = f"HTTP {e.code}: {body_text.strip()}"
+        return result
+    except urllib.error.URLError as e:
+        result.error = f"request failed: {e.reason}"
+        return result
+    except TimeoutError:
         result.error = f"timed out after {timeout}s"
         return result
 
-    if proc.returncode != 0:
-        result.error = (
-            f"exit {proc.returncode}: {proc.stderr.strip() or proc.stdout.strip()}"
-        )
-        return result
-
     try:
-        payload = json.loads(proc.stdout)
+        payload = json.loads(body)
     except json.JSONDecodeError as e:
-        result.error = f"invalid JSON output: {e}"
+        result.error = f"invalid JSON response: {e}"
         return result
 
-    result.static_verdict = payload.get("StaticVerdict")
+    result.static_verdict = payload.get("staticVerdict")
     result.llm_verdict = payload.get("llmVerdict")
     result.static_findings_count = len(payload.get("staticFindings") or [])
     result.llm_findings_count = len(payload.get("llmFindings") or [])
@@ -178,9 +190,9 @@ def run_cadrega(
 
 
 def evaluate(
-    entry: ManifestEntry, binary: str, args: argparse.Namespace, timeout: float
+    entry: ManifestEntry, url: str, args: argparse.Namespace, timeout: float
 ) -> SampleResult:
-    result = run_cadrega(binary, entry.path, args, timeout)
+    result = call_analyze_api(url, entry.path, args, timeout)
     result.path = str(entry.path)
     result.label = entry.label
     return result
@@ -203,22 +215,28 @@ def main() -> int:
         "--manifest", required=True, type=Path, help="CSV manifest of skill,label pairs"
     )
     parser.add_argument(
-        "--binary", default="./cadrega", help="path to the cadrega binary"
+        "--url",
+        default="http://localhost:8080",
+        help="base URL of a running cadrega server",
     )
     parser.add_argument(
         "--provider", required=True, choices=["ollama", "anthropic", "openai"]
     )
     parser.add_argument("--model", required=True)
-    parser.add_argument("--address", default="localhost", help="Ollama server address")
-    parser.add_argument("--port", type=int, default=11434, help="Ollama server port")
     parser.add_argument(
-        "--think", action="store_true", help="enable Ollama thinking mode"
+        "--ollama-address", default="localhost", help="Ollama server address"
     )
     parser.add_argument(
-        "--num-ctx", type=int, default=8192, help="Ollama context window size"
+        "--ollama-port", type=int, default=11434, help="Ollama server port"
     )
     parser.add_argument(
-        "--unload-model",
+        "--ollama-think", action="store_true", help="enable Ollama thinking mode"
+    )
+    parser.add_argument(
+        "--ollama-num-ctx", type=int, default=8192, help="Ollama context window size"
+    )
+    parser.add_argument(
+        "--ollama-unload-model",
         action="store_true",
         help="unload the Ollama model after analysis",
     )
@@ -226,7 +244,7 @@ def main() -> int:
         "--timeout", type=float, default=180.0, help="per-sample timeout in seconds"
     )
     parser.add_argument(
-        "--workers", type=int, default=1, help="number of samples to run concurrently"
+        "--workers", type=int, default=1, help="number of requests to run concurrently"
     )
     parser.add_argument(
         "--output",
@@ -249,7 +267,7 @@ def main() -> int:
     results: list[SampleResult] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=args.workers) as pool:
         futures = {
-            pool.submit(evaluate, entry, args.binary, args, args.timeout): entry
+            pool.submit(evaluate, entry, args.url, args, args.timeout): entry
             for entry in entries
         }
         for i, future in enumerate(concurrent.futures.as_completed(futures), start=1):
@@ -257,11 +275,10 @@ def main() -> int:
             result = future.result()
             results.append(result)
             status = (
-                "ERROR"
+                f"ERROR: {result.error}"
                 if result.error
                 else f"static={result.static_verdict} llm={result.llm_verdict}"
             )
-            print(result.error)
             print(f"[{i}/{len(entries)}] {entry.label:9s} {entry.path}  ->  {status}")
 
     args.output.write_text(json.dumps([asdict(r) for r in results], indent=2))
