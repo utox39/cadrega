@@ -194,9 +194,14 @@ func parseAnthropicModelName(ctx context.Context, client anthropic.Client, name 
 }
 
 func (pc providerConfig) runAnthropicModel(ctx context.Context) (string, error) {
-	client := anthropic.NewClient(
-		option.WithAPIKey(pc.modelInfo.Config.APIKey), // defaults to os.LookupEnv("ANTHROPIC_API_KEY")
-	)
+	// WithAPIKey overwrites the key unconditionally and is applied after the
+	// SDK's environment defaults, so passing an empty value would clobber
+	// ANTHROPIC_API_KEY instead of falling back to it.
+	var clientOpts []option.RequestOption
+	if pc.modelInfo.Config.APIKey != "" {
+		clientOpts = append(clientOpts, option.WithAPIKey(pc.modelInfo.Config.APIKey))
+	}
+	client := anthropic.NewClient(clientOpts...)
 
 	modelName, err := parseAnthropicModelName(ctx, client, pc.modelInfo.Name)
 	if err != nil {
