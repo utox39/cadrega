@@ -16,11 +16,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/utox39/cadrega/pkg/findings"
-
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/ollama/ollama/api"
+	"github.com/openai/openai-go/v3"
+	openaiOption "github.com/openai/openai-go/v3/option"
+	"github.com/openai/openai-go/v3/responses"
+
+	"github.com/utox39/cadrega/pkg/findings"
 )
 
 type LLMProvider struct{ Name string }
@@ -223,6 +226,66 @@ func (pc providerConfig) runAnthropicModel(ctx context.Context) (string, error) 
 	return llmOutput.String(), nil
 }
 
+// parseOpenaiModelName validates that name is a model the Openai API
+// currently recognizes, by asking the Models API rather than checking it
+// against a hardcoded list. This means newly released models work as soon
+// as the user types them, with no code change needed here.
+func parseOpenaiModelName(ctx context.Context, client openai.Client, name string) (string, error) {
+	if name == "" {
+		return "", fmt.Errorf("model name is required")
+	}
+
+	model, err := client.Models.Get(ctx, name)
+	if err != nil {
+		var apiErr *openai.Error
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+			return "", fmt.Errorf("unknown model %q", name)
+		}
+		return "", fmt.Errorf("failed to validate model %q: %w", name, err)
+	}
+
+	return model.ID, nil
+}
+
+func (pc providerConfig) runOpenaiModel(ctx context.Context) (string, error) {
+	// WithAPIKey overwrites the key unconditionally and is applied after the
+	// SDK's environment defaults, so passing an empty value would clobber
+	// OPENAI_API_KEY instead of falling back to it.
+	var clientOpts []openaiOption.RequestOption
+	if pc.modelInfo.Config.APIKey != "" {
+		clientOpts = append(clientOpts, openaiOption.WithAPIKey(pc.modelInfo.Config.APIKey))
+	}
+	client := openai.NewClient(clientOpts...)
+
+	modelName, err := parseOpenaiModelName(ctx, client, pc.modelInfo.Name)
+	if err != nil {
+		return "", fmt.Errorf("openai: %v", err)
+	}
+
+	resp, err := client.Responses.New(ctx, responses.ResponseNewParams{
+		// The system prompt goes in Instructions so the untrusted skill content
+		// stays in a separate field, preserving the data boundary that the
+		// delimiter token in AnalyzeSkill establishes.
+		Instructions: openai.String(pc.systemPrompt),
+		Input:        responses.ResponseNewParamsInputUnion{OfString: openai.String(pc.userPrompt)},
+		Model:        modelName,
+	})
+	if err != nil {
+		return "", fmt.Errorf("openai: %v", err)
+	}
+
+	// A truncated or failed response still yields text, which would surface
+	// downstream as an opaque JSON unmarshaling error.
+	switch resp.Status {
+	case responses.ResponseStatusIncomplete:
+		return "", fmt.Errorf("openai: incomplete response: %s", resp.IncompleteDetails.Reason)
+	case responses.ResponseStatusFailed:
+		return "", fmt.Errorf("openai: failed response: %s", resp.Error.Message)
+	}
+
+	return resp.OutputText(), nil
+}
+
 // randomDelimiterToken returns a fresh random hex token used to delimit
 // untrusted SKILL content, so the SKILL itself cannot forge a closing tag
 // and escape the data boundary described in prompts/prompt.md.
@@ -271,7 +334,7 @@ func (m Model) AnalyzeSkill(ctx context.Context, content string) (string, error)
 		}
 	case OpenAI:
 		{
-			panic("TODO")
+			llmResponse, err = pc.runOpenaiModel(ctx)
 		}
 	default:
 		return "", fmt.Errorf("unknown LLM provider %q: valid providers are: anthropic, google, ollama, openai", m.Provider)
