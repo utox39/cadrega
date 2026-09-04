@@ -13,7 +13,7 @@
 ## Description
 
 >[!NOTE]
-> Cadrega is under active development. Integration with LLMs is limited to Ollama and Claude.
+> Cadrega is under active development. Integration with LLMs is limited to Ollama, Anthropic and OpenAI.
 
 Cadrega is an hybrid analysis tool (static analysis + LLM analysis) for malicious [Skills](https://agentskills.io/home)
 
