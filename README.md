@@ -160,7 +160,10 @@ curl --location --request POST '<cadrega-address>:<cadrega-port>/analyze' \
 }'
 ```
 
-Defaults: `<cadrega-address>:<cadrega-port>` is `localhost:8080` (see `cadrega serve`'s `--address`/`--port`); `<ollama-address>` and `<ollama-port>` default to `localhost` and `11434` if omitted, or point them at wherever your Ollama instance actually runs.
+Defaults:
+
+- `<cadrega-address>:<cadrega-port>` is `localhost:8080` (see `cadrega serve`'s `--address`/`--port`);
+- `<ollama-address>` and `<ollama-port>` default to `localhost` and `11434` if omitted, or point them at wherever your Ollama instance actually runs.
 
 #### Open the Web UI
 
