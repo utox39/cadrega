@@ -209,16 +209,28 @@ func (pc providerConfig) runAnthropicModel(ctx context.Context) (string, error) 
 	}
 
 	message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-		MaxTokens: 1024,
+		// Thinking tokens count toward MaxTokens on models where thinking is
+		// always on, and the audit report can be long. 16000 leaves room for
+		// both while keeping this non-streaming request within the SDK's HTTP
+		// timeout.
+		MaxTokens: 16000,
+		// The system prompt goes in System so the untrusted skill content
+		// stays in a separate field, preserving the data boundary that the
+		// delimiter token in AnalyzeSkill establishes.
+		System: []anthropic.TextBlockParam{{Text: pc.systemPrompt}},
 		Messages: []anthropic.MessageParam{
-			// The Anthropic SDK does not provide a method for system prompt messages, so “User Message” will be used.
-			anthropic.NewUserMessage(anthropic.NewTextBlock(pc.systemPrompt)),
 			anthropic.NewUserMessage(anthropic.NewTextBlock(pc.userPrompt)),
 		},
 		Model: modelName,
 	})
 	if err != nil {
 		return "", fmt.Errorf("anthropic: %v", err)
+	}
+
+	// A truncated response still yields text, which would surface downstream
+	// as an opaque JSON unmarshaling error.
+	if message.StopReason == anthropic.StopReasonMaxTokens {
+		return "", fmt.Errorf("anthropic: response truncated: max_tokens reached")
 	}
 
 	var llmOutput strings.Builder
