@@ -30,6 +30,12 @@ func RunStaticAnalysis(content string) ([]findings.Finding, error) {
 	smu := rules.ASCIISmuggling{
 		Data: content,
 	}
+	typg := rules.Typoglycemia{
+		Data:       content,
+		Fuzzy:      false,
+		IgnoreCase: true,
+		Join:       true,
+	}
 	smc := rules.SoulMemoryCorruption{
 		Data: content,
 	}
@@ -41,6 +47,7 @@ func RunStaticAnalysis(content string) ([]findings.Finding, error) {
 		hex,
 		a85,
 		inj,
+		typg,
 		smc,
 	})
 
