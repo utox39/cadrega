@@ -294,7 +294,7 @@ func main() {
 	cmd := &cli.Command{
 		Name:    "cadrega",
 		Usage:   "Malicious Skills Detector",
-		Version: "0.3.0",
+		Version: "0.3.1",
 		// `scan` runs when the first positional argument is not a subcommand
 		// name, so `cadrega <skillpath>` keeps working.
 		DefaultCommand: "scan",
