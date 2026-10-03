@@ -86,7 +86,7 @@ USAGE:
    cadrega [global options] [command [command options]]
 
 VERSION:
-   0.1.0
+   0.3.0
 
 COMMANDS:
    scan     analyze a skill
