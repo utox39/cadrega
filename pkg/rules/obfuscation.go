@@ -175,14 +175,16 @@ func isTypoglycemia(s string, targets []string) bool {
 	sort.Strings(splittedS)
 	splittedSJoined := strings.Join(splittedS, "")
 
-	for _, t := range targets {
-		if (len(s) != len(t)) || len(s) < 3 {
+	for _, target := range targets {
+		if (len(s) != len(target)) || len(s) < 3 {
 			continue
 		}
 
-		sort.Strings(strings.Split(t, ""))
+		splittedTarget := strings.Split(target, "")
+		sort.Strings(splittedTarget)
+		sortedTarget := strings.Join(splittedTarget, "")
 
-		if (s[0] == t[0]) && (s[len(s)-1] == t[len(t)-1]) && (splittedSJoined == t) {
+		if (s[0] == target[0]) && (s[len(s)-1] == target[len(target)-1]) && (splittedSJoined == sortedTarget) {
 			return true
 		}
 
