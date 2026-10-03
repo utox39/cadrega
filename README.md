@@ -34,7 +34,8 @@ flowchart TD
         R4["ENC002\nHex Encoding"]
         R5["ENC003\nASCII85 Encoding"]
         R6["INJ001\nPrompt Injection"]
-        R7["PER001\nSOUL.md / MEMORY.md Corruption"]
+        R7["OBF002\nTypoglycemia"]
+        R8["PER001\nSOUL.md / MEMORY.md Corruption"]
     end
 
     R1 -->|"[]Finding"| CH[(findings channel)]
@@ -44,6 +45,7 @@ flowchart TD
     R5 -->|"[]Finding"| CH
     R6 -->|"[]Finding"| CH
     R7 -->|"[]Finding"| CH
+    R8 -->|"[]Finding"| CH
 
     CH --> AGG[Aggregate findings]
 
@@ -86,7 +88,7 @@ USAGE:
    cadrega [global options] [command [command options]]
 
 VERSION:
-   0.3.0
+   0.3.1
 
 COMMANDS:
    scan     analyze a skill
