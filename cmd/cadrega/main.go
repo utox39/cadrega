@@ -177,7 +177,7 @@ func runScan(ctx context.Context, opts scanOptions) error {
 
 	// Build the user prompt
 	var findsToStr strings.Builder
-	findsToStr.WriteString("Static Analysis results:")
+	findsToStr.WriteString("Static Analysis results:\n")
 	for _, f := range staticFindings {
 		findsToStr.WriteString("- ")
 		findsToStr.WriteString(f.Format())
@@ -185,7 +185,7 @@ func runScan(ctx context.Context, opts scanOptions) error {
 	}
 
 	log.Println("LLM Analysis: Started...")
-	llmResult, err := model.AnalyzeSkill(ctx, content+findsToStr.String())
+	llmResult, err := model.AnalyzeSkill(ctx, content, findsToStr.String())
 	if err != nil {
 		return err
 	}

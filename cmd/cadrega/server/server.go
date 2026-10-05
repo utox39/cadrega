@@ -140,7 +140,7 @@ func Analyze(w http.ResponseWriter, r *http.Request) {
 
 	// Build the user prompt
 	var findsToStr strings.Builder
-	findsToStr.WriteString("Static Analysis results:")
+	findsToStr.WriteString("Static Analysis results:\n")
 	for _, f := range staticFindings {
 		findsToStr.WriteString("- ")
 		findsToStr.WriteString(f.Format())
@@ -148,7 +148,7 @@ func Analyze(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("LLM Analysis: Started...")
-	llmResult, err := model.AnalyzeSkill(context.Background(), analyzeRequest.SkillContent+findsToStr.String())
+	llmResult, err := model.AnalyzeSkill(context.Background(), analyzeRequest.SkillContent, findsToStr.String())
 	if err != nil {
 		errDescription = fmt.Sprintf("LLM error: %v", err)
 		log.Println(errDescription)
