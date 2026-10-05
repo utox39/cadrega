@@ -14,6 +14,7 @@ const (
 	Low Severity = iota
 	Medium
 	High
+	Unknown
 )
 
 func (s Severity) String() string {
@@ -24,6 +25,8 @@ func (s Severity) String() string {
 		return "MEDIUM"
 	case High:
 		return "HIGH"
+	case Unknown:
+		return "UNKNOWN"
 	default:
 		return "UNKNOWN"
 	}

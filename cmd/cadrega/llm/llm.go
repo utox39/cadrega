@@ -395,6 +395,8 @@ func ToFindings(llmResponse string) ([]findings.Finding, error) {
 			sev = findings.Medium
 		case "high":
 			sev = findings.High
+		default:
+			sev = findings.Unknown
 		}
 
 		finds[i] = findings.Finding{
