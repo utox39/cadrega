@@ -61,8 +61,8 @@ class SampleResult:
     label: str
     static_verdict: str | None = None
     llm_verdict: str | None = None
-    static_findings_count: int = 0
-    llm_findings_count: int = 0
+    static_findings_ids: list[str] = field(default_factory=list)
+    llm_findings_ids: list[str] = field(default_factory=list)
     error: str | None = None
 
 
@@ -184,8 +184,11 @@ def call_analyze_api(
 
     result.static_verdict = payload.get("staticVerdict")
     result.llm_verdict = payload.get("llmVerdict")
-    result.static_findings_count = len(payload.get("staticFindings") or [])
-    result.llm_findings_count = len(payload.get("llmFindings") or [])
+    # findings.Finding has no json tags, so its fields are encoded with their Go names.
+    result.static_findings_ids = [
+        f.get("ID", "") for f in payload.get("staticFindings") or []
+    ]
+    result.llm_findings_ids = [f.get("ID", "") for f in payload.get("llmFindings") or []]
     return result
 
 
